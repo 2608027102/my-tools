@@ -1,0 +1,16 @@
+{
+  "id": "random-number-generator",
+  "name": "随机数生成器",
+  "version": "1.0.0",
+  "description": "生成指定位数的随机数",
+  "author": "Speed Launcher Team",
+  "main": "main.js",
+  "commands": [
+    {
+      "id": "generate-random",
+      "name": "生成随机数",
+      "description": "生成指定位数的随机数",
+      "keywords": ["random", "number", "随机", "数字"]
+    }
+  ]
+}

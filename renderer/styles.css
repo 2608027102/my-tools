@@ -1,0 +1,207 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: rgba(24, 24, 24, 0.9);
+  color: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.container {
+  padding: 20px;
+}
+.search-box {
+  width: 100%;
+  padding: 15px;
+  font-size: 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  outline: none;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+.search-box::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+.results {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.result-item {
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  position: relative;
+}
+.result-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.result-item.active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.result-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.result-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.result-details {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.95);
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+}
+.result-details-row {
+  display: flex;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.result-details-label {
+  color: rgba(255, 255, 255, 0.6);
+  width: 100px;
+  flex-shrink: 0;
+}
+.result-details-value {
+  color: rgba(255, 255, 255, 0.9);
+  word-break: break-all;
+}
+.list-selection {
+  background-color: rgba(0, 0, 0, 0.95);
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+}
+.list-selection-item {
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+.list-selection-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.list-selection-item.selected {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.list-selection-title {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.list-selection-subtitle {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+.plugin-logs {
+  background-color: rgba(0, 0, 0, 0.95);
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+}
+.plugin-logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.plugin-logs-title {
+  font-weight: 500;
+  font-size: 14px;
+}
+.copy-logs-btn {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.copy-logs-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.plugin-logs-content {
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 12px;
+}
+.plugin-log-item {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.plugin-log-item:last-child {
+  border-bottom: none;
+}
+.plugin-result {
+  background-color: rgba(0, 0, 0, 0.95);
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+}
+.plugin-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.plugin-result-title {
+  font-weight: 500;
+  font-size: 14px;
+}
+.copy-result-btn {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.copy-result-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.plugin-result-content {
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 12px;
+}
+.plugin-result-item {
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  word-break: break-all;
+}
+.footer {
+  margin-top: 20px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
