@@ -179,6 +179,17 @@ class PluginManager {
           };
         }
         
+        // Check if result contains HTML content
+        if (result && typeof result === 'object' && !Array.isArray(result) && result.type === 'html') {
+          console.log('Returning HTML content');
+          return {
+            success: true,
+            result: result,
+            isHtml: true,
+            logs: pluginLogs
+          };
+        }
+        
         // Check if result contains a list
         if (result && Array.isArray(result)) {
           console.log('Returning list result');

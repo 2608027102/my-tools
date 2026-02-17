@@ -1,0 +1,16 @@
+{
+  "id": "html-demo",
+  "name": "HTML演示",
+  "version": "1.0.0",
+  "description": "演示插件的HTML渲染能力",
+  "author": "Speed Launcher Team",
+  "main": "main.js",
+  "commands": [
+    {
+      "id": "show-html-demo",
+      "name": "HTML演示",
+      "description": "显示HTML演示页面",
+      "keywords": ["html", "demo", "演示"]
+    }
+  ]
+}

@@ -682,6 +682,8 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (currentPluginList) {
       closePluginListSelection();
+    } else if (currentPluginPrompt) {
+      closePluginPrompt();
     } else {
       // 按下ESC按键时，清除插件运行状态
       if (pluginState.isRunning) {
@@ -691,9 +693,10 @@ window.addEventListener('keydown', (e) => {
           data: null
         };
         console.log('Plugin state cleared:', pluginState);
-        // 清除插件结果和日志显示
+        // 清除插件结果、日志和HTML显示
         closePluginResult();
         closePluginLogs();
+        closePluginHtml();
       } else {
         window.electronAPI.hideWindow();
       }
@@ -713,6 +716,8 @@ window.addEventListener('focus', () => {
       showPluginLogs(pluginState.data);
     } else if (pluginState.type === 'result') {
       showPluginResult(pluginState.data);
+    } else if (pluginState.type === 'html') {
+      renderPluginHtml(pluginState.data);
     }
   }
 });
@@ -835,6 +840,78 @@ function closePluginPrompt() {
   currentPluginPrompt = null;
 }
 
+function renderPluginHtml(htmlData) {
+  console.log('Rendering plugin HTML:', htmlData);
+  
+  // 清空整个results容器
+  results.innerHTML = '';
+  
+  const htmlContainer = document.createElement('div');
+  htmlContainer.className = 'plugin-html full-width';
+  
+  const htmlHeader = document.createElement('div');
+  htmlHeader.className = 'plugin-html-header';
+  
+  const titleDiv = document.createElement('div');
+  titleDiv.className = 'plugin-html-title';
+  titleDiv.textContent = htmlData.title || '插件内容';
+  htmlHeader.appendChild(titleDiv);
+  
+  htmlContainer.appendChild(htmlHeader);
+  
+  // 使用iframe来隔离HTML内容
+  const iframe = document.createElement('iframe');
+  iframe.className = 'plugin-html-iframe full-height';
+  iframe.style.border = 'none';
+  iframe.style.width = '100%';
+  iframe.style.height = '100%';
+  
+  // 创建完整的HTML文档
+  const htmlDoc = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>${htmlData.title || '插件内容'}</title>
+      <style>
+        body {
+          margin: 0;
+          padding: 10px;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background-color: transparent;
+          color: white;
+        }
+        ${htmlData.styles || ''}
+      </style>
+    </head>
+    <body>
+      ${htmlData.content}
+    </body>
+    </html>
+  `;
+  
+  // 设置iframe内容
+  iframe.srcdoc = htmlDoc;
+  htmlContainer.appendChild(iframe);
+  
+  results.appendChild(htmlContainer);
+  
+  // 更新插件状态
+  pluginState = {
+    isRunning: true,
+    type: 'html',
+    data: htmlData
+  };
+  console.log('Plugin state updated:', pluginState);
+}
+
+function closePluginHtml() {
+  const existingHtml = document.querySelector('.plugin-html');
+  if (existingHtml) {
+    existingHtml.remove();
+  }
+}
+
 // 重新绑定插件命令执行结果监听器
 if (window.electronAPI && window.electronAPI.onPluginCommandExecutedWithList) {
   console.log('Binding onPluginCommandExecutedWithList listener');
@@ -854,6 +931,9 @@ if (window.electronAPI && window.electronAPI.onPluginCommandExecutedWithList) {
       if (result.success && result.isPrompt) {
         console.log('Showing plugin prompt');
         renderPluginPrompt(result.result);
+      } else if (result.success && result.isHtml) {
+        console.log('Showing plugin HTML');
+        renderPluginHtml(result.result);
       } else if (result.success && result.isList && Array.isArray(result.result)) {
         console.log('Showing list selection');
         currentPluginList = result.result;
