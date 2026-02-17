@@ -37,5 +37,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   copyToClipboard: (text) => ipcRenderer.send('copy-to-clipboard', text),
   onCopyToClipboardComplete: (callback) => ipcRenderer.on('copy-to-clipboard-complete', callback),
   getClipboardContent: () => ipcRenderer.send('get-clipboard-content'),
-  onClipboardContentRetrieved: (callback) => ipcRenderer.on('clipboard-content-retrieved', callback)
+  onClipboardContentRetrieved: (callback) => ipcRenderer.on('clipboard-content-retrieved', callback),
+  // 窗口分离相关
+  detachWindow: (pluginState) => ipcRenderer.send('detach-window', pluginState),
+  closeDetachWindow: () => ipcRenderer.send('close-detach-window'),
+  maximizeDetachWindow: () => ipcRenderer.send('maximize-detach-window'),
+  minimizeDetachWindow: () => ipcRenderer.send('minimize-detach-window'),
+  toggleAlwaysOnTop: () => ipcRenderer.send('toggle-always-on-top'),
+  syncPluginState: (pluginState) => ipcRenderer.send('sync-plugin-state', pluginState),
+  executePluginCommandInDetach: (data) => ipcRenderer.send('execute-plugin-command-in-detach', data),
+  onDetachWindowRequest: (callback) => ipcRenderer.on('detach-window-request', callback),
+  onRestorePluginState: (callback) => ipcRenderer.on('restore-plugin-state', callback),
+  onInitializeDetachWindow: (callback) => ipcRenderer.on('initialize-detach-window', callback),
+  onPluginCommandExecutedInDetach: (callback) => ipcRenderer.on('plugin-command-executed-in-detach', callback)
 });

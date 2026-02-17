@@ -11,11 +11,19 @@ module.exports = {
     if (commandId === 'decode-base64') {
       console.trace('Executing decode-base64 command');
       
-      // 如果有选择的文本参数，解码Base64
+      // 检查是否有输入参数（text或prompt）
+      let inputText = null;
       if (params && params.text) {
-        console.trace('Decoding Base64 text:', params.text);
+        inputText = params.text;
+      } else if (params && params.prompt) {
+        inputText = params.prompt;
+      }
+      
+      // 如果有输入参数，解码Base64
+      if (inputText) {
+        console.trace('Decoding Base64 text:', inputText);
         try {
-          const decodedText = Buffer.from(params.text, 'base64').toString('utf8');
+          const decodedText = Buffer.from(inputText, 'base64').toString('utf8');
           console.log(decodedText);
           return {
             success: true,
@@ -29,6 +37,16 @@ module.exports = {
           };
         }
       }
+      
+      // 如果没有输入参数，返回prompt请求
+      console.trace('Returning prompt request');
+      return {
+        type: 'prompt',
+        title: '解码Base64',
+        placeholder: '请输入Base64编码的文本',
+        defaultValue: '',
+        params: {}
+      };
     }
     
     console.error('Unknown command:', commandId);

@@ -12,6 +12,8 @@ let configManager;
 let commandExecutor;
 let themeManager;
 let appScanner;
+let detachWindow = null;
+let detachedPluginState = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -36,6 +38,52 @@ function createWindow() {
   });
 }
 
+function createDetachWindow() {
+  console.log('Creating detach window with plugin state:', detachedPluginState);
+  
+  // 关闭已存在的分离窗口
+  if (detachWindow) {
+    detachWindow.close();
+  }
+  
+  // 创建新的分离窗口
+  detachWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    title: '插件分离窗口',
+    frame: true,
+    resizable: true,
+    maximizable: true,
+    minimizable: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
+  
+  // 加载分离窗口的HTML
+  detachWindow.loadFile(path.join(__dirname, 'renderer', 'detach.html'));
+  
+  // 传递插件状态到分离窗口
+  detachWindow.webContents.on('did-finish-load', () => {
+    detachWindow.webContents.send('initialize-detach-window', {
+      pluginState: detachedPluginState
+    });
+  });
+  
+  // 监听分离窗口关闭事件
+  detachWindow.on('closed', function () {
+    detachWindow = null;
+    
+    // 通知主窗口恢复插件状态
+    if (mainWindow && detachedPluginState) {
+      mainWindow.webContents.send('restore-plugin-state', detachedPluginState);
+      detachedPluginState = null;
+    }
+  });
+}
+
 app.whenReady().then(() => {
   pluginManager = new PluginManager();
   pluginManager.loadPlugins();
@@ -57,6 +105,13 @@ app.whenReady().then(() => {
     } else {
       mainWindow.show();
       mainWindow.focus();
+    }
+  });
+
+  // 注册窗口分离快捷键
+  globalShortcut.register('Ctrl+D', () => {
+    if (mainWindow.isVisible()) {
+      mainWindow.webContents.send('detach-window-request');
     }
   });
 
@@ -185,6 +240,69 @@ app.whenReady().then(() => {
     }
   });
 
+  // 处理窗口分离请求
+  ipcMain.on('detach-window', (event, pluginState) => {
+    console.log('Received detach-window request with plugin state:', pluginState);
+    detachedPluginState = pluginState;
+    
+    // 创建分离窗口
+    createDetachWindow();
+  });
+
+  // 处理分离窗口的插件命令执行
+  ipcMain.on('execute-plugin-command-in-detach', (event, { pluginId, commandId, params }) => {
+    const result = pluginManager.executePluginCommandWithList(pluginId, commandId, params);
+    if (detachWindow) {
+      detachWindow.webContents.send('plugin-command-executed-in-detach', result);
+    }
+  });
+
+  // 处理关闭分离窗口请求
+  ipcMain.on('close-detach-window', () => {
+    console.log('Received close-detach-window request');
+    if (detachWindow) {
+      detachWindow.close();
+      detachWindow = null;
+      
+      // 通知主窗口恢复插件状态
+      if (mainWindow && detachedPluginState) {
+        mainWindow.webContents.send('restore-plugin-state', detachedPluginState);
+        detachedPluginState = null;
+      }
+    }
+  });
+
+  // 处理分离窗口的最大化请求
+  ipcMain.on('maximize-detach-window', () => {
+    if (detachWindow) {
+      if (detachWindow.isMaximized()) {
+        detachWindow.unmaximize();
+      } else {
+        detachWindow.maximize();
+      }
+    }
+  });
+
+  // 处理分离窗口的最小化请求
+  ipcMain.on('minimize-detach-window', () => {
+    if (detachWindow) {
+      detachWindow.minimize();
+    }
+  });
+
+  // 处理分离窗口的置顶请求
+  ipcMain.on('toggle-always-on-top', () => {
+    if (detachWindow) {
+      const isAlwaysOnTop = detachWindow.isAlwaysOnTop();
+      detachWindow.setAlwaysOnTop(!isAlwaysOnTop);
+    }
+  });
+
+  // 处理分离窗口的状态同步
+  ipcMain.on('sync-plugin-state', (event, pluginState) => {
+    detachedPluginState = pluginState;
+  });
+
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -195,5 +313,11 @@ app.on('window-all-closed', function () {
 });
 
 app.on('will-quit', function () {
+  // 关闭分离窗口
+  if (detachWindow) {
+    detachWindow.close();
+  }
+  
+  // 注销所有全局快捷键
   globalShortcut.unregisterAll();
 });

@@ -204,6 +204,14 @@ class PluginManager {
         // Check if result contains a single item
         if (result && typeof result === 'object' && !Array.isArray(result)) {
           console.log('Returning object result');
+          // 检查是否是错误对象
+          if (result.success === false) {
+            return {
+              success: false,
+              error: result.error || 'Unknown error',
+              logs: pluginLogs
+            };
+          }
           return {
             success: true,
             result: result,

@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
     type: null, // 'logs' 或 'result'
     data: null
   };
+  // ESC键按下次数，用于实现多段操作
+  let escPressCount = 0;
 
 function renderResults(filteredItems) {
   results.innerHTML = '';
@@ -271,6 +273,18 @@ function executeCommand(item) {
   console.log('Item type:', item.type);
   console.log('Item pluginId:', item.pluginId);
   
+  // 清除之前的插件状态和UI元素
+  pluginState = {
+    isRunning: false,
+    type: null,
+    data: null
+  };
+  closePluginResult();
+  closePluginLogs();
+  closePluginHtml();
+  closePluginPrompt();
+  closePluginListSelection();
+  
   if (item.type === 'plugin' && item.pluginId) {
     console.log('Executing plugin command:', item.name);
     // 总是调用showPluginListSelection来处理插件命令
@@ -292,6 +306,9 @@ function showPluginListSelection(plugin) {
   console.log('Plugin name:', plugin.name);
   console.log('Plugin ID:', plugin.id);
   console.log('Plugin pluginId:', plugin.pluginId);
+  
+  // 清空results容器，隐藏其他备选插件
+  results.innerHTML = '';
   
   // 临时保存当前插件信息，用于处理返回结果
   currentPluginInfo = plugin;
@@ -370,6 +387,9 @@ function closePluginListSelection() {
 
 function showPluginLogs(logs) {
   console.log('Showing plugin logs:', logs);
+  
+  // 清空results容器，隐藏其他备选插件
+  results.innerHTML = '';
   
   // 清除现有日志显示
   closePluginLogs();
@@ -484,6 +504,9 @@ function copyLogsToClipboard(button) {
 
 function showPluginResult(result) {
   console.log('Showing plugin result:', result);
+  
+  // 清空results容器，隐藏其他备选插件
+  results.innerHTML = '';
   
   // 清除现有结果显示
   closePluginResult();
@@ -685,8 +708,10 @@ window.addEventListener('keydown', (e) => {
     } else if (currentPluginPrompt) {
       closePluginPrompt();
     } else {
-      // 按下ESC按键时，清除插件运行状态
+      // 按下ESC按键时，根据按下次数执行不同操作
       if (pluginState.isRunning) {
+        // 第一次按ESC：退出插件
+        console.log('ESC pressed, count:', escPressCount);
         pluginState = {
           isRunning: false,
           type: null,
@@ -697,8 +722,24 @@ window.addEventListener('keydown', (e) => {
         closePluginResult();
         closePluginLogs();
         closePluginHtml();
-      } else {
+        escPressCount = 1;
+      } else if (escPressCount === 1 || searchInput.value.trim() !== '') {
+        // 第二次按ESC或输入框有内容：清除输入框内容
+        console.log('ESC pressed again, clearing input');
+        searchInput.value = '';
+        // 重新渲染结果
+        const filtered = filterCommands(searchInput.value);
+        renderResults(filtered);
+        escPressCount = 2;
+      } else if (escPressCount === 2 || searchInput.value.trim() === '') {
+        // 第三次按ESC或输入框为空：隐藏输入框
+        console.log('ESC pressed third time, hiding window');
         window.electronAPI.hideWindow();
+        escPressCount = 0;
+      } else {
+        // 默认：隐藏窗口
+        window.electronAPI.hideWindow();
+        escPressCount = 0;
       }
     }
   }
@@ -706,6 +747,10 @@ window.addEventListener('keydown', (e) => {
 
 window.addEventListener('focus', () => {
   searchInput.focus();
+  // 每次窗口获得焦点时，重置ESC按键计数
+  escPressCount = 0;
+  console.log('ESC press count reset to 0');
+  
   // 每次窗口获得焦点时，获取最新的剪切板内容
   window.electronAPI.getClipboardContent();
   
@@ -726,6 +771,42 @@ window.addEventListener('focus', () => {
 console.log('Checking electronAPI:', window.electronAPI);
 console.log('Checking onPluginCommandExecutedWithList:', typeof window.electronAPI.onPluginCommandExecutedWithList);
 
+// 监听窗口分离请求
+window.electronAPI.onDetachWindowRequest(() => {
+  console.log('Detach window request received');
+  if (pluginState.isRunning) {
+    // 发送插件状态到主进程，请求创建分离窗口
+    window.electronAPI.detachWindow(pluginState);
+    // 清除当前插件状态
+    pluginState = {
+      isRunning: false,
+      type: null,
+      data: null
+    };
+    // 清除当前插件内容
+    closePluginResult();
+    closePluginLogs();
+    closePluginHtml();
+    closePluginPrompt();
+    closePluginListSelection();
+  }
+});
+
+// 监听恢复插件状态
+window.electronAPI.onRestorePluginState((event, state) => {
+  console.log('Restore plugin state received:', state);
+  pluginState = state;
+  if (pluginState.isRunning) {
+    if (pluginState.type === 'logs') {
+      showPluginLogs(pluginState.data);
+    } else if (pluginState.type === 'result') {
+      showPluginResult(pluginState.data);
+    } else if (pluginState.type === 'html') {
+      renderPluginHtml(pluginState.data);
+    }
+  }
+});
+
 window.electronAPI.onCommandExecuted((event, result) => {
   console.log('Command executed:', result);
 });
@@ -735,8 +816,12 @@ window.electronAPI.onPluginCommandExecuted((event, result) => {
   console.log('Result:', result);
   console.log('Result type:', typeof result);
   
-  // 显示插件日志
-  if (result.logs && result.logs.length > 0) {
+  // 检查是否是prompt请求
+  if (result.result && typeof result.result === 'object' && result.result.type === 'prompt') {
+    console.log('Showing plugin prompt');
+    renderPluginPrompt(result.result);
+  } else if (result.logs && result.logs.length > 0) {
+    // 显示插件日志
     showPluginLogs(result.logs);
   } else {
     // 显示执行结果
@@ -746,6 +831,9 @@ window.electronAPI.onPluginCommandExecuted((event, result) => {
 
 function renderPluginPrompt(promptData) {
   console.log('Rendering plugin prompt:', promptData);
+  
+  // 清空results容器，隐藏其他备选插件
+  results.innerHTML = '';
   
   const existingPrompt = document.querySelector('.plugin-prompt');
   if (existingPrompt) {
@@ -843,7 +931,7 @@ function closePluginPrompt() {
 function renderPluginHtml(htmlData) {
   console.log('Rendering plugin HTML:', htmlData);
   
-  // 清空整个results容器
+  // 清空整个results容器，隐藏其他备选插件
   results.innerHTML = '';
   
   const htmlContainer = document.createElement('div');
