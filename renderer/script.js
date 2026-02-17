@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let currentPluginListElement = null;
   let pluginListActiveIndex = -1;
   let currentPluginInfo = null;
+  let currentPluginPrompt = null;
   // 插件运行状态持久化
   let pluginState = {
     isRunning: false,
@@ -347,7 +348,7 @@ function renderPluginListSelection(listItems) {
 function executePluginListItem(item) {
   console.log('Executing plugin list item:', item);
   
-  window.electronAPI.executePluginCommand({
+  window.electronAPI.executePluginCommandWithList({
     pluginId: currentPluginList.pluginId,
     commandId: currentPluginList.commandId,
     params: item
@@ -738,6 +739,102 @@ window.electronAPI.onPluginCommandExecuted((event, result) => {
   }
 });
 
+function renderPluginPrompt(promptData) {
+  console.log('Rendering plugin prompt:', promptData);
+  
+  const existingPrompt = document.querySelector('.plugin-prompt');
+  if (existingPrompt) {
+    existingPrompt.remove();
+  }
+  
+  const promptContainer = document.createElement('div');
+  promptContainer.className = 'plugin-prompt';
+  
+  const promptHeader = document.createElement('div');
+  promptHeader.className = 'plugin-prompt-header';
+  
+  const titleDiv = document.createElement('div');
+  titleDiv.className = 'plugin-prompt-title';
+  titleDiv.textContent = promptData.title || '请输入';
+  promptHeader.appendChild(titleDiv);
+  
+  promptContainer.appendChild(promptHeader);
+  
+  const promptContent = document.createElement('div');
+  promptContent.className = 'plugin-prompt-content';
+  
+  const inputElement = document.createElement('input');
+  inputElement.type = 'text';
+  inputElement.className = 'plugin-prompt-input';
+  inputElement.placeholder = promptData.placeholder || '';
+  inputElement.value = promptData.defaultValue || '';
+  inputElement.autofocus = true;
+  promptContent.appendChild(inputElement);
+  
+  const promptFooter = document.createElement('div');
+  promptFooter.className = 'plugin-prompt-footer';
+  
+  const cancelButton = document.createElement('button');
+  cancelButton.className = 'plugin-prompt-button cancel';
+  cancelButton.textContent = '取消';
+  cancelButton.addEventListener('click', () => {
+    closePluginPrompt();
+  });
+  promptFooter.appendChild(cancelButton);
+  
+  const submitButton = document.createElement('button');
+  submitButton.className = 'plugin-prompt-button submit';
+  submitButton.textContent = '确认';
+  submitButton.addEventListener('click', () => {
+    submitPluginPrompt(inputElement.value);
+  });
+  promptFooter.appendChild(submitButton);
+  
+  promptContainer.appendChild(promptContent);
+  promptContainer.appendChild(promptFooter);
+  results.appendChild(promptContainer);
+  
+  // 保存当前prompt信息
+  currentPluginPrompt = {
+    data: promptData,
+    inputElement: inputElement
+  };
+  
+  // 处理输入框的键盘事件
+  inputElement.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      submitPluginPrompt(inputElement.value);
+    } else if (e.key === 'Escape') {
+      closePluginPrompt();
+    }
+  });
+}
+
+function submitPluginPrompt(value) {
+  console.log('Submitting plugin prompt:', value);
+  
+  if (currentPluginInfo) {
+    window.electronAPI.executePluginCommandWithList({
+      pluginId: currentPluginInfo.pluginId,
+      commandId: currentPluginInfo.id,
+      params: {
+        prompt: value,
+        ...currentPluginPrompt.data.params
+      }
+    });
+  }
+  
+  closePluginPrompt();
+}
+
+function closePluginPrompt() {
+  const existingPrompt = document.querySelector('.plugin-prompt');
+  if (existingPrompt) {
+    existingPrompt.remove();
+  }
+  currentPluginPrompt = null;
+}
+
 // 重新绑定插件命令执行结果监听器
 if (window.electronAPI && window.electronAPI.onPluginCommandExecutedWithList) {
   console.log('Binding onPluginCommandExecutedWithList listener');
@@ -750,10 +847,14 @@ if (window.electronAPI && window.electronAPI.onPluginCommandExecutedWithList) {
     if (result) {
       console.log('Result success:', result.success);
       console.log('Result isList:', result.isList);
+      console.log('Result isPrompt:', result.isPrompt);
       console.log('Result result:', result.result);
       console.log('Result logs:', result.logs);
       
-      if (result.success && result.isList && Array.isArray(result.result)) {
+      if (result.success && result.isPrompt) {
+        console.log('Showing plugin prompt');
+        renderPluginPrompt(result.result);
+      } else if (result.success && result.isList && Array.isArray(result.result)) {
         console.log('Showing list selection');
         currentPluginList = result.result;
         // 保存插件信息到列表中

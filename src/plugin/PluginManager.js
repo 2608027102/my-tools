@@ -152,6 +152,12 @@ class PluginManager {
           originalConsoleLog.apply(console, args);
         };
         
+        // 检查是否有prompt参数
+        if (params && params.prompt) {
+          console.log('Processing prompt:', params.prompt);
+          // 这里可以添加对prompt的处理逻辑
+        }
+        
         const result = plugin.module.executeCommand(commandId, params);
         
         // 恢复原始console.log
@@ -161,6 +167,17 @@ class PluginManager {
         console.log('Result type:', typeof result);
         console.log('Is array:', Array.isArray(result));
         console.log('Plugin logs:', pluginLogs);
+        
+        // Check if result contains a prompt request
+        if (result && typeof result === 'object' && !Array.isArray(result) && result.type === 'prompt') {
+          console.log('Returning prompt request');
+          return {
+            success: true,
+            result: result,
+            isPrompt: true,
+            logs: pluginLogs
+          };
+        }
         
         // Check if result contains a list
         if (result && Array.isArray(result)) {
