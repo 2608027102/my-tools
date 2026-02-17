@@ -10,12 +10,21 @@
 - **快捷命令**：自定义系统命令、脚本和URL快捷方式
 - **插件系统**：高度可扩展的插件架构，支持第三方插件
 - **主题切换**：支持深色和浅色主题，用户可自定义
+- **Base64解码**：内置Base64解码器插件，支持文本输入和解码结果显示
+- **随机数生成**：内置随机数生成器插件，支持自定义位数
+- **HTML渲染**：支持插件返回HTML内容，使用iframe隔离渲染
+- **窗口分离**：支持将插件窗口分离为独立窗口，使用 `Ctrl+D` 快捷键
+- **多阶段ESC操作**：ESC键支持多阶段操作（退出插件、清空输入、隐藏窗口）
 
 ### 技术特点
 - **跨平台支持**：兼容 Windows、macOS 和 Linux 系统
 - **安全可靠**：使用 Electron 的安全架构，保护用户数据
 - **高性能**：毫秒级搜索响应，快速启动应用
 - **易于扩展**：简洁的插件 API，方便开发者创建插件
+- **插件交互**：支持基于 prompt 的用户输入和选项列表渲染
+- **HTML隔离**：使用 iframe 隔离渲染 HTML 内容，防止注入问题
+- **窗口管理**：支持窗口分离和状态同步，增强用户体验
+- **键盘快捷键**：全局快捷键和多阶段 ESC 键操作
 
 ## 安装方法
 
@@ -54,6 +63,11 @@ npm run build
 2. **搜索应用**：输入应用程序名称、命令或插件关键词
 3. **执行项目**：按回车键或点击搜索结果
 4. **隐藏窗口**：再次按下 `Ctrl+Space` 或 `Escape` 键
+5. **分离窗口**：在插件界面按下 `Ctrl+D` 快捷键将窗口分离为独立窗口
+6. **多阶段ESC操作**：
+   - 第一次按下：退出插件界面，返回搜索模式
+   - 第二次按下：清空输入框内容
+   - 第三次按下：隐藏搜索窗口
 
 ### 搜索功能
 - **模糊匹配**：支持部分匹配和拼音首字母搜索
@@ -130,6 +144,8 @@ my-plugin/
 ```
 
 ### 插件主文件 (main.js)
+
+#### 基础插件示例
 ```javascript
 module.exports = {
   // 插件初始化
@@ -154,10 +170,152 @@ module.exports = {
 };
 ```
 
+#### 带用户输入的插件示例
+```javascript
+module.exports = {
+  executeCommand(commandId, params) {
+    if (commandId === 'base64-decode') {
+      // 检查是否有输入
+      if (!params.text && !params.prompt) {
+        return {
+          success: false,
+          needPrompt: true,
+          prompt: {
+            title: 'Base64解码',
+            placeholder: '请输入base64文本',
+            defaultValue: ''
+          }
+        };
+      }
+      
+      // 使用用户输入进行解码
+      const input = params.prompt || params.text;
+      try {
+        const decoded = Buffer.from(input, 'base64').toString('utf8');
+        return {
+          success: true,
+          result: decoded
+        };
+      } catch (error) {
+        return {
+          success: false,
+          result: '解码失败：' + error.message
+        };
+      }
+    }
+  }
+};
+```
+
+#### 带选项列表的插件示例
+```javascript
+module.exports = {
+  executeCommand(commandId, params) {
+    if (commandId === 'random-number') {
+      if (!params.prompt) {
+        return {
+          success: false,
+          needPrompt: true,
+          prompt: {
+            title: '随机数生成',
+            placeholder: '请输入位数',
+            defaultValue: '4',
+            options: [
+              { label: '4位', value: '4' },
+              { label: '6位', value: '6' },
+              { label: '8位', value: '8' },
+              { label: '10位', value: '10' }
+            ]
+          }
+        };
+      }
+      
+      const digits = parseInt(params.prompt) || 4;
+      const randomNumber = Math.floor(Math.random() * Math.pow(10, digits)).toString().padStart(digits, '0');
+      return {
+        success: true,
+        result: randomNumber
+      };
+    }
+  }
+};
+```
+
+#### HTML渲染插件示例
+```javascript
+module.exports = {
+  executeCommand(commandId, params) {
+    if (commandId === 'html-demo') {
+      return {
+        success: true,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>HTML演示</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              h1 { color: #333; }
+              .container { max-width: 600px; margin: 0 auto; }
+              button { padding: 10px 20px; margin: 10px 0; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>HTML渲染演示</h1>
+              <p>这是一个完整的HTML页面，包含CSS和JavaScript。</p>
+              <button onclick="alert('Hello from HTML!')">点击我</button>
+            </div>
+          </body>
+          </html>
+        `
+      };
+    }
+  }
+};
+```
+
 ### 插件 API
 - `init()`：插件初始化时调用
 - `executeCommand(commandId, params)`：执行插件命令
+  - `params.text`：用户在搜索框中输入的文本
+  - `params.prompt`：用户在prompt中输入的内容
 - `destroy()`：插件卸载时调用
+
+### 插件响应格式
+
+#### 基本响应
+```javascript
+{
+  success: true,
+  result: '执行结果'
+}
+```
+
+#### 提示用户输入
+```javascript
+{
+  success: false,
+  needPrompt: true,
+  prompt: {
+    title: '提示标题',
+    placeholder: '输入提示',
+    defaultValue: '默认值',
+    options: [ // 可选选项列表
+      { label: '选项1', value: 'value1' },
+      { label: '选项2', value: 'value2' }
+    ]
+  }
+}
+```
+
+#### HTML内容响应
+```javascript
+{
+  success: true,
+  html: '<!DOCTYPE html><html>...</html>'
+}
+```
 
 ## 配置文件
 
@@ -187,7 +345,11 @@ speed-launcher/
 ├── preload.js           # 预加载脚本
 ├── package.json         # 项目配置
 ├── renderer/            # 渲染进程
-│   └── index.html       # 主界面
+│   ├── index.html       # 主界面
+│   ├── script.js        # 主界面脚本
+│   ├── styles.css       # 主界面样式
+│   ├── detach.html      # 分离窗口界面
+│   └── detach.js        # 分离窗口脚本
 ├── src/                 # 核心代码
 │   ├── config/          # 配置管理
 │   │   ├── ConfigManager.js
@@ -198,6 +360,9 @@ speed-launcher/
 │   └── plugin/          # 插件系统
 │       └── PluginManager.js
 ├── plugins/             # 插件目录
+│   ├── base64-decoder/  # Base64解码器插件
+│   ├── random-number-generator/  # 随机数生成器插件
+│   └── html-demo/       # HTML渲染演示插件
 ├── config/              # 配置文件目录
 └── dist/               # 构建输出目录
 ```
@@ -219,6 +384,16 @@ speed-launcher/
 - [x] 快捷命令管理模块
 - [x] 主题系统和用户配置
 - [x] 应用程序扫描和检索
+- [x] Base64解码器插件
+- [x] 随机数生成器插件
+- [x] HTML渲染演示插件
+- [x] 基于prompt的用户输入机制
+- [x] 选项列表渲染功能
+- [x] HTML内容iframe隔离渲染
+- [x] 窗口分离功能（Ctrl+D快捷键）
+- [x] 分离窗口状态同步
+- [x] 多阶段ESC键操作
+- [x] 插件执行和隔离优化
 
 ### 未来规划
 - [ ] 插件市场和在线插件安装
