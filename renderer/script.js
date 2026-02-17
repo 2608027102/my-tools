@@ -155,7 +155,67 @@ function fuzzySearch(items, query) {
   const results = [];
   
   items.forEach(item => {
-    const score = calculateMatchScore(item, lowerQuery);
+    let score = 0;
+    
+    // 检查插件命令是否有自定义匹配类型
+    if (item.type === 'plugin' && item.matchType) {
+      switch (item.matchType) {
+        case 'regex':
+          // 使用插件注册的正则表达式进行匹配
+          if (item.matchPattern) {
+            try {
+              const regex = new RegExp(item.matchPattern, 'i');
+              if (regex.test(query)) {
+                score = 100; // 正则匹配给予最高分数
+              }
+            } catch (error) {
+              console.error('Invalid regex pattern in plugin:', error);
+              // 正则错误时回退到默认匹配
+              score = calculateMatchScore(item, lowerQuery);
+            }
+          }
+          break;
+        case 'exact':
+          // 精确匹配
+          if (item.name.toLowerCase() === lowerQuery || 
+              (item.keywords && Array.isArray(item.keywords) && item.keywords.some(keyword => keyword.toLowerCase() === lowerQuery))) {
+            score = 90;
+          }
+          break;
+        default:
+          // 默认使用模糊匹配
+          score = calculateMatchScore(item, lowerQuery);
+      }
+    } else {
+      // 检查是否为用户输入的正则表达式模式（以/开头和结尾）
+      let isUserRegex = false;
+      let userRegex = null;
+      if (query.startsWith('/') && query.endsWith('/')) {
+        try {
+          const regexPattern = query.substring(1, query.length - 1);
+          userRegex = new RegExp(regexPattern, 'i');
+          isUserRegex = true;
+        } catch (error) {
+          console.error('Invalid regex pattern:', error);
+          isUserRegex = false;
+        }
+      }
+      
+      if (isUserRegex && userRegex) {
+        // 使用用户输入的正则表达式匹配
+        if (userRegex.test(item.name) || 
+            (item.command && userRegex.test(item.command)) || 
+            (item.description && userRegex.test(item.description)) || 
+            (item.path && userRegex.test(item.path)) || 
+            (item.keywords && Array.isArray(item.keywords) && item.keywords.some(keyword => userRegex.test(keyword)))) {
+          score = 100; // 正则匹配给予最高分数
+        }
+      } else {
+        // 使用原有模糊匹配
+        score = calculateMatchScore(item, lowerQuery);
+      }
+    }
+    
     if (score > 0) {
       results.push({ ...item, score });
     }
@@ -236,11 +296,17 @@ function showPluginListSelection(plugin) {
   currentPluginInfo = plugin;
   console.log('Saved currentPluginInfo:', currentPluginInfo);
   
+  // 获取用户输入的文本
+  const userInput = searchInput.value;
+  console.log('User input:', userInput);
+  
   console.log('Sending executePluginCommandWithList');
   window.electronAPI.executePluginCommandWithList({
     pluginId: plugin.pluginId,
     commandId: plugin.id,
-    params: {}
+    params: {
+      text: userInput
+    }
   });
   console.log('executePluginCommandWithList sent');
 }

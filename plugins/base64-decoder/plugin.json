@@ -1,0 +1,18 @@
+{
+  "id": "base64-decoder",
+  "name": "base64解码器",
+  "version": "1.0.0",
+  "description": "base64解码器",
+  "author": "Speed Launcher Team",
+  "main": "main.js",
+  "commands": [
+    {
+      "id": "decode-base64",
+      "name": "解码Base64",
+      "description": "解码Base64格式的文本",
+      "keywords": ["base64", "decode", "解码"],
+      "matchType": "regex",
+      "matchPattern": "^[A-Za-z0-9+/]+(?:=|==)?$"
+    }
+  ]
+}
