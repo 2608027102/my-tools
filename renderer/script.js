@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', function() {
   let currentPluginListElement = null;
   let pluginListActiveIndex = -1;
   let currentPluginInfo = null;
+  // 插件运行状态持久化
+  let pluginState = {
+    isRunning: false,
+    type: null, // 'logs' 或 'result'
+    data: null
+  };
 
 function renderResults(filteredItems) {
   results.innerHTML = '';
@@ -335,6 +341,14 @@ function showPluginLogs(logs) {
   
   logsContainer.appendChild(logsContent);
   results.appendChild(logsContainer);
+  
+  // 更新插件状态
+  pluginState = {
+    isRunning: true,
+    type: 'logs',
+    data: logs
+  };
+  console.log('Plugin state updated:', pluginState);
 }
 
 function closePluginLogs() {
@@ -450,6 +464,14 @@ function showPluginResult(result) {
   
   resultContainer.appendChild(resultContent);
   results.appendChild(resultContainer);
+  
+  // 更新插件状态
+  pluginState = {
+    isRunning: true,
+    type: 'result',
+    data: result
+  };
+  console.log('Plugin state updated:', pluginState);
 }
 
 function closePluginResult() {
@@ -585,17 +607,47 @@ searchInput.addEventListener('keydown', (e) => {
         executeCommand(filtered[0]);
       }
     }
-  } else if (e.key === 'Escape') {
+  }
+});
+
+// 为整个窗口添加ESC按键监听
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
     if (currentPluginList) {
       closePluginListSelection();
     } else {
-      window.electronAPI.hideWindow();
+      // 按下ESC按键时，清除插件运行状态
+      if (pluginState.isRunning) {
+        pluginState = {
+          isRunning: false,
+          type: null,
+          data: null
+        };
+        console.log('Plugin state cleared:', pluginState);
+        // 清除插件结果和日志显示
+        closePluginResult();
+        closePluginLogs();
+      } else {
+        window.electronAPI.hideWindow();
+      }
     }
   }
 });
 
 window.addEventListener('focus', () => {
   searchInput.focus();
+  // 每次窗口获得焦点时，获取最新的剪切板内容
+  window.electronAPI.getClipboardContent();
+  
+  // 如果插件处于运行状态，恢复显示插件结果界面
+  if (pluginState.isRunning) {
+    console.log('Restoring plugin state:', pluginState);
+    if (pluginState.type === 'logs') {
+      showPluginLogs(pluginState.data);
+    } else if (pluginState.type === 'result') {
+      showPluginResult(pluginState.data);
+    }
+  }
 });
 
 // 确保electronAPI已经初始化
@@ -721,6 +773,18 @@ function loadTheme() {
 window.electronAPI.onThemeLoaded((event, { theme, themeName }) => {
   console.log('Theme loaded:', themeName);
   applyTheme(theme);
+});
+
+// 获取剪切板内容并填充到输入栏
+window.electronAPI.onClipboardContentRetrieved((event, result) => {
+  console.log('Clipboard content retrieved:', result);
+  // 只有当插件不处于运行状态时，才将剪切板内容填充到输入栏并执行搜索
+  if (result.success && result.content && !pluginState.isRunning) {
+    searchInput.value = result.content;
+    // 如果有内容，自动执行搜索
+    const filtered = filterCommands(result.content);
+    renderResults(filtered);
+  }
 });
 
 function applyTheme(theme) {

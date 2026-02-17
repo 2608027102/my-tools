@@ -35,5 +35,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   executeApp: (app) => ipcRenderer.send('execute-app', app),
   onAppExecuted: (callback) => ipcRenderer.on('app-executed', callback),
   copyToClipboard: (text) => ipcRenderer.send('copy-to-clipboard', text),
-  onCopyToClipboardComplete: (callback) => ipcRenderer.on('copy-to-clipboard-complete', callback)
+  onCopyToClipboardComplete: (callback) => ipcRenderer.on('copy-to-clipboard-complete', callback),
+  getClipboardContent: () => ipcRenderer.send('get-clipboard-content'),
+  onClipboardContentRetrieved: (callback) => ipcRenderer.on('clipboard-content-retrieved', callback)
 });

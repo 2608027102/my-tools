@@ -172,6 +172,19 @@ app.whenReady().then(() => {
     }
   });
 
+  // 处理获取剪贴板内容的请求
+  ipcMain.on('get-clipboard-content', (event) => {
+    try {
+      const { clipboard } = require('electron');
+      const content = clipboard.readText();
+      console.log('Retrieved clipboard content:', content);
+      event.reply('clipboard-content-retrieved', { success: true, content });
+    } catch (error) {
+      console.error('Failed to get clipboard content:', error);
+      event.reply('clipboard-content-retrieved', { success: false, error: error.message });
+    }
+  });
+
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

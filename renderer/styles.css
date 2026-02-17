@@ -28,6 +28,13 @@ body {
 .results {
   max-height: 300px;
   overflow-y: auto;
+  /* 隐藏滚动条但保留滚动功能 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.results::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 .result-item {
   padding: 12px;
@@ -51,17 +58,21 @@ body {
   color: rgba(255, 255, 255, 0.7);
 }
 .result-details {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   background-color: rgba(0, 0, 0, 0.95);
   border-radius: 4px;
   padding: 12px;
-  margin-top: 8px;
-  z-index: 1000;
+  z-index: 9999;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  max-width: 400px;
+  max-width: 80vw;
+  max-height: 80vh;
+  min-width: 300px;
+  white-space: normal;
+  word-break: break-all;
+  overflow: auto;
 }
 .result-details-row {
   display: flex;
