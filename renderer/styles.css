@@ -9,6 +9,10 @@ body {
 }
 .container {
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
 }
 .search-box {
   width: 100%;
@@ -26,8 +30,7 @@ body {
   color: rgba(255, 255, 255, 0.5);
 }
 .results {
-  max-height: calc(100vh - 100px);
-  height: calc(100vh - 100px);
+  flex-grow: 1;
   overflow-y: auto;
   /* 隐藏滚动条但保留滚动功能 */
   scrollbar-width: none; /* Firefox */
@@ -43,12 +46,30 @@ body {
   cursor: pointer;
   margin-bottom: 8px;
   position: relative;
+  display: flex;
+  align-items: center;
 }
 .result-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 .result-item.active {
   background-color: rgba(255, 255, 255, 0.2);
+}
+.result-icon-container {
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.result-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+.result-content {
+  flex-grow: 1;
 }
 .result-title {
   font-weight: 500;

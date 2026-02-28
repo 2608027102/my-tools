@@ -49,5 +49,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDetachWindowRequest: (callback) => ipcRenderer.on('detach-window-request', callback),
   onRestorePluginState: (callback) => ipcRenderer.on('restore-plugin-state', callback),
   onInitializeDetachWindow: (callback) => ipcRenderer.on('initialize-detach-window', callback),
-  onPluginCommandExecutedInDetach: (callback) => ipcRenderer.on('plugin-command-executed-in-detach', callback)
+  onPluginCommandExecutedInDetach: (callback) => ipcRenderer.on('plugin-command-executed-in-detach', callback),
+  // 拼音转换功能
+  getPinyin: (text) => {
+    return new Promise((resolve) => {
+      ipcRenderer.once('pinyin-result', (event, result) => {
+        resolve(result);
+      });
+      ipcRenderer.send('get-pinyin', text);
+    });
+  },
+  getPinyinFirstLetter: (text) => {
+    return new Promise((resolve) => {
+      ipcRenderer.once('pinyin-first-letter-result', (event, result) => {
+        resolve(result);
+      });
+      ipcRenderer.send('get-pinyin-first-letter', text);
+    });
+  },
+  // 窗口显示事件
+  onWindowShown: (callback) => ipcRenderer.on('window-shown', callback)
 });

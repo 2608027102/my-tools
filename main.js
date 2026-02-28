@@ -1,5 +1,6 @@
-const { app, BrowserWindow, globalShortcut, ipcMain } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, shell } = require('electron');
 const path = require('path');
+const {pinyin} = require('pinyin');
 const PluginManager = require('./src/plugin/PluginManager');
 const ConfigManager = require('./src/config/ConfigManager');
 const CommandExecutor = require('./src/executor/CommandExecutor');
@@ -15,7 +16,7 @@ let appScanner;
 let detachWindow = null;
 let detachedPluginState = null;
 
-function createWindow() {
+function createWindow() {  
   mainWindow = new BrowserWindow({
     width: 600,
     height: 400,
@@ -105,6 +106,8 @@ app.whenReady().then(() => {
     } else {
       mainWindow.show();
       mainWindow.focus();
+      // 通知渲染进程窗口已显示
+      mainWindow.webContents.send('window-shown');
     }
   });
 
@@ -196,16 +199,73 @@ app.whenReady().then(() => {
     event.reply('themes-loaded', themes);
   });
 
-  ipcMain.on('get-apps', (event) => {
+  ipcMain.on('get-apps', async (event) => {
     const apps = appScanner.getApps();
     console.log('Sending apps to renderer:', apps.length);
-    event.reply('apps-loaded', apps);
+    
+    function getShortcutTarget(path) {
+      try {
+        return shell.readShortcutLink(path).target;
+      } catch (error) {
+        console.error('Error reading shortcut link:', path, error);
+        return path;
+      }
+    }
+
+    // 为每个应用获取图标
+    const appsWithIcons = await Promise.all(apps.map(async (appItem) => {
+      try {
+        if (appItem.path) {
+          let filePath = appItem.path;
+          if (appItem.path.endsWith('.lnk')) {
+            filePath = getShortcutTarget(appItem.path);
+          }
+
+          if (!filePath) {
+            return {
+              ...appItem,
+              icon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iNDhweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSI0OHB4IiBmaWxsPSIjMWYxZjFmIj48cGF0aCBkPSJNMjIwLTgwcS0yNCAwLTQyLTE4dC0xOC00MnYtNjgwcTAtMjQgMTgtNDJ0NDItMThoMzYxbDIxOSAyMTl2NTIxcTAgMjQtMTggNDJ0LTQyIDE4SDIyMFptMzMxLTU1NHYtMTg2SDIyMHY2ODBoNTIwdi00OTRINTUxWk0yMjAtODIwdjE4Ni0xODYgNjgwLTY4MFoiLz48L3N2Zz4="
+            }
+          }
+
+          const icon = await app.getFileIcon(filePath, { size: 'large' });
+          return {
+            ...appItem,
+            icon: icon.toDataURL()
+          };
+        }
+        return appItem;
+      } catch (error) {
+        console.error('Error getting icon for app:', appItem.name, error);
+        return appItem;
+      }
+    }));
+    
+    event.reply('apps-loaded', appsWithIcons);
   });
 
-  ipcMain.on('search-apps', (event, query) => {
+  ipcMain.on('search-apps', async (event, query) => {
     const apps = appScanner.searchApps(query);
     console.log('Searching apps with query:', query, 'found', apps.length);
-    event.reply('apps-searched', apps);
+    
+    // 为每个应用获取图标
+    const appsWithIcons = await Promise.all(apps.map(async (appItem) => {
+      try {
+        if (appItem.path) {
+          const icon = await app.getFileIcon(appItem.path, { size: 'small' });
+          return {
+            ...appItem,
+            icon: icon.toDataURL()
+          };
+        }
+        return appItem;
+      } catch (error) {
+        console.error('Error getting icon for app:', appItem.name, error);
+        return appItem;
+      }
+    }));
+    
+    event.reply('apps-searched', appsWithIcons);
   });
 
   ipcMain.on('execute-app', (event, app) => {
@@ -301,6 +361,42 @@ app.whenReady().then(() => {
   // 处理分离窗口的状态同步
   ipcMain.on('sync-plugin-state', (event, pluginState) => {
     detachedPluginState = pluginState;
+  });
+
+  // 处理拼音转换请求
+  ipcMain.on('get-pinyin', (event, text) => {
+    if (!text) {
+      event.reply('pinyin-result', '');
+      return;
+    }
+    try {
+      const result = pinyin(text, {
+        style: pinyin.STYLE_NORMAL,
+        segment: true
+      }).join('');
+      event.reply('pinyin-result', result);
+    } catch (error) {
+      console.error('Error converting to pinyin:', error);
+      event.reply('pinyin-result', text);
+    }
+  });
+
+  // 处理拼音首字母转换请求
+  ipcMain.on('get-pinyin-first-letter', (event, text) => {
+    if (!text) {
+      event.reply('pinyin-first-letter-result', '');
+      return;
+    }
+    try {
+      const result = pinyin(text, {
+        style: pinyin.STYLE_FIRST_LETTER,
+        segment: true
+      }).join('');
+      event.reply('pinyin-first-letter-result', result);
+    } catch (error) {
+      console.error('Error converting to pinyin first letter:', error);
+      event.reply('pinyin-first-letter-result', text);
+    }
   });
 
   app.on('activate', function () {

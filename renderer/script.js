@@ -43,9 +43,14 @@ function renderResults(filteredItems) {
       subtitle += ` - ${item.command}`;
     }
     
+    const iconHtml = item.icon ? `<img class="result-icon" src="${item.icon}" alt="${item.name} icon" />` : '';
+    
     resultItem.innerHTML = `
-      <div class="result-title">${item.name}</div>
-      <div class="result-subtitle">${subtitle}</div>
+      <div class="result-icon-container">${iconHtml}</div>
+      <div class="result-content">
+        <div class="result-title">${item.name}</div>
+        <div class="result-subtitle">${subtitle}</div>
+      </div>
     `;
     
     resultItem.addEventListener('click', () => executeCommand(item));
@@ -131,7 +136,7 @@ function hideItemDetails(element) {
   }
 }
 
-function filterCommands(query) {
+async function filterCommands(query) {
   let allItems = [...commands];
   
   pluginCommands.forEach(cmd => {
@@ -150,14 +155,14 @@ function filterCommands(query) {
   
   if (!query) return allItems;
   
-  return fuzzySearch(allItems, query);
+  return await fuzzySearch(allItems, query);
 }
 
-function fuzzySearch(items, query) {
+async function fuzzySearch(items, query) {
   const lowerQuery = query.toLowerCase();
   const results = [];
   
-  items.forEach(item => {
+  for (const item of items) {
     let score = 0;
     
     // 检查插件命令是否有自定义匹配类型
@@ -174,7 +179,7 @@ function fuzzySearch(items, query) {
             } catch (error) {
               console.error('Invalid regex pattern in plugin:', error);
               // 正则错误时回退到默认匹配
-              score = calculateMatchScore(item, lowerQuery);
+              score = await calculateMatchScore(item, lowerQuery);
             }
           }
           break;
@@ -187,7 +192,7 @@ function fuzzySearch(items, query) {
           break;
         default:
           // 默认使用模糊匹配
-          score = calculateMatchScore(item, lowerQuery);
+          score = await calculateMatchScore(item, lowerQuery);
       }
     } else {
       // 检查是否为用户输入的正则表达式模式（以/开头和结尾）
@@ -215,20 +220,32 @@ function fuzzySearch(items, query) {
         }
       } else {
         // 使用原有模糊匹配
-        score = calculateMatchScore(item, lowerQuery);
+        score = await calculateMatchScore(item, lowerQuery);
       }
     }
     
     if (score > 0) {
       results.push({ ...item, score });
     }
-  });
+  }
   
   results.sort((a, b) => b.score - a.score);
   return results;
 }
 
-function calculateMatchScore(item, query) {
+// 将中文转换为拼音
+function getPinyin(text) {
+  if (!text) return '';
+  return window.electronAPI.getPinyin(text);
+}
+
+// 将中文转换为拼音首字母
+function getPinyinFirstLetter(text) {
+  if (!text) return '';
+  return window.electronAPI.getPinyinFirstLetter(text);
+}
+
+async function calculateMatchScore(item, query) {
   let score = 0;
   const itemName = item.name.toLowerCase();
   
@@ -238,6 +255,27 @@ function calculateMatchScore(item, query) {
     score += 80;
   } else if (itemName.includes(query)) {
     score += 60;
+  }
+  
+  // 拼音匹配
+  const itemNamePinyin = (await getPinyin(item.name)).toLowerCase();
+  const itemNamePinyinFirstLetter = (await getPinyinFirstLetter(item.name)).toLowerCase();
+  
+  if (itemNamePinyin === query) {
+    score += 90;
+  } else if (itemNamePinyin.startsWith(query)) {
+    score += 70;
+  } else if (itemNamePinyin.includes(query)) {
+    score += 50;
+  }
+  
+  // 拼音首字母匹配
+  if (itemNamePinyinFirstLetter === query) {
+    score += 85;
+  } else if (itemNamePinyinFirstLetter.startsWith(query)) {
+    score += 65;
+  } else if (itemNamePinyinFirstLetter.includes(query)) {
+    score += 45;
   }
   
   if (item.command && item.command.toLowerCase().includes(query)) {
@@ -253,7 +291,7 @@ function calculateMatchScore(item, query) {
   }
   
   if (item.keywords && Array.isArray(item.keywords)) {
-    item.keywords.forEach(keyword => {
+    for (const keyword of item.keywords) {
       if (keyword.toLowerCase() === query) {
         score += 90;
       } else if (keyword.toLowerCase().startsWith(query)) {
@@ -261,7 +299,27 @@ function calculateMatchScore(item, query) {
       } else if (keyword.toLowerCase().includes(query)) {
         score += 50;
       }
-    });
+      
+      // 关键词拼音匹配
+      const keywordPinyin = (await getPinyin(keyword)).toLowerCase();
+      const keywordPinyinFirstLetter = (await getPinyinFirstLetter(keyword)).toLowerCase();
+      
+      if (keywordPinyin === query) {
+        score += 80;
+      } else if (keywordPinyin.startsWith(query)) {
+        score += 60;
+      } else if (keywordPinyin.includes(query)) {
+        score += 40;
+      }
+      
+      if (keywordPinyinFirstLetter === query) {
+        score += 75;
+      } else if (keywordPinyinFirstLetter.startsWith(query)) {
+        score += 55;
+      } else if (keywordPinyinFirstLetter.includes(query)) {
+        score += 35;
+      }
+    }
   }
   
   return score;
@@ -638,8 +696,8 @@ function copyResultToClipboard(button) {
   }
 }
 
-function updateActiveIndex(direction) {
-  const filtered = filterCommands(searchInput.value);
+async function updateActiveIndex(direction) {
+  const filtered = await filterCommands(searchInput.value);
   if (filtered.length === 0) return;
   
   activeIndex += direction;
@@ -647,6 +705,12 @@ function updateActiveIndex(direction) {
   if (activeIndex >= filtered.length) activeIndex = 0;
   
   renderResults(filtered);
+  
+  // 自动滚动到选中的项目
+  const activeElement = document.querySelector('.result-item.active');
+  if (activeElement) {
+    activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 function updatePluginListIndex(direction) {
@@ -657,33 +721,39 @@ function updatePluginListIndex(direction) {
   if (pluginListActiveIndex >= currentPluginList.length) pluginListActiveIndex = 0;
   
   renderPluginListSelection(currentPluginList);
+  
+  // 自动滚动到选中的项目
+  const activeElement = document.querySelector('.list-selection-item.selected');
+  if (activeElement) {
+    activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
-searchInput.addEventListener('input', () => {
+searchInput.addEventListener('input', async () => {
   activeIndex = -1;
   closePluginListSelection();
-  const filtered = filterCommands(searchInput.value);
+  const filtered = await filterCommands(searchInput.value);
   renderResults(filtered);
 });
 
-searchInput.addEventListener('keydown', (e) => {
+searchInput.addEventListener('keydown', async (e) => {
   if (e.key === 'ArrowDown') {
     e.preventDefault();
     if (currentPluginList) {
       updatePluginListIndex(1);
     } else {
-      updateActiveIndex(1);
+      await updateActiveIndex(1);
     }
   } else if (e.key === 'ArrowUp') {
     e.preventDefault();
     if (currentPluginList) {
       updatePluginListIndex(-1);
     } else {
-      updateActiveIndex(-1);
+      await updateActiveIndex(-1);
     }
   } else if (e.key === 'Enter') {
     e.preventDefault();
-    const filtered = filterCommands(searchInput.value);
+    const filtered = await filterCommands(searchInput.value);
     if (currentPluginList) {
       if (pluginListActiveIndex >= 0 && pluginListActiveIndex < currentPluginList.length) {
         executePluginListItem(currentPluginList[pluginListActiveIndex]);
@@ -728,8 +798,10 @@ window.addEventListener('keydown', (e) => {
         console.log('ESC pressed again, clearing input');
         searchInput.value = '';
         // 重新渲染结果
-        const filtered = filterCommands(searchInput.value);
-        renderResults(filtered);
+        (async () => {
+          const filtered = await filterCommands(searchInput.value);
+          renderResults(filtered);
+        })();
         escPressCount = 2;
       } else if (escPressCount === 2 || searchInput.value.trim() === '') {
         // 第三次按ESC或输入框为空：隐藏输入框
@@ -751,9 +823,6 @@ window.addEventListener('focus', () => {
   escPressCount = 0;
   console.log('ESC press count reset to 0');
   
-  // 每次窗口获得焦点时，获取最新的剪切板内容
-  window.electronAPI.getClipboardContent();
-  
   // 如果插件处于运行状态，恢复显示插件结果界面
   if (pluginState.isRunning) {
     console.log('Restoring plugin state:', pluginState);
@@ -765,6 +834,12 @@ window.addEventListener('focus', () => {
       renderPluginHtml(pluginState.data);
     }
   }
+});
+
+// 监听窗口显示事件，只有在窗口显示时才获取剪切板内容
+window.electronAPI.onWindowShown(() => {
+  console.log('Window shown, getting clipboard content');
+  window.electronAPI.getClipboardContent();
 });
 
 // 确保electronAPI已经初始化
@@ -1066,11 +1141,11 @@ function loadPluginCommands() {
   window.electronAPI.getPluginCommands();
 }
 
-window.electronAPI.onPluginCommandsLoaded((event, loadedCommands) => {
+window.electronAPI.onPluginCommandsLoaded(async (event, loadedCommands) => {
   pluginCommands = loadedCommands;
   console.log('Plugin commands loaded:', pluginCommands.length);
   if (searchInput.value) {
-    const filtered = filterCommands(searchInput.value);
+    const filtered = await filterCommands(searchInput.value);
     renderResults(filtered);
   }
 });
@@ -1079,11 +1154,11 @@ function loadApps() {
   window.electronAPI.getApps();
 }
 
-window.electronAPI.onAppsLoaded((event, loadedApps) => {
+window.electronAPI.onAppsLoaded(async (event, loadedApps) => {
   apps = loadedApps;
   console.log('Applications loaded:', apps.length);
   if (searchInput.value) {
-    const filtered = filterCommands(searchInput.value);
+    const filtered = await filterCommands(searchInput.value);
     renderResults(filtered);
   }
 });
@@ -1092,11 +1167,11 @@ function loadCommands() {
   window.electronAPI.loadCommands();
 }
 
-window.electronAPI.onCommandsLoaded((event, loadedCommands) => {
+window.electronAPI.onCommandsLoaded(async (event, loadedCommands) => {
   commands = loadedCommands;
   console.log('Commands loaded:', commands.length);
   if (searchInput.value) {
-    const filtered = filterCommands(searchInput.value);
+    const filtered = await filterCommands(searchInput.value);
     renderResults(filtered);
   }
 });
@@ -1111,13 +1186,13 @@ window.electronAPI.onThemeLoaded((event, { theme, themeName }) => {
 });
 
 // 获取剪切板内容并填充到输入栏
-window.electronAPI.onClipboardContentRetrieved((event, result) => {
+window.electronAPI.onClipboardContentRetrieved(async (event, result) => {
   console.log('Clipboard content retrieved:', result);
   // 只有当插件不处于运行状态时，才将剪切板内容填充到输入栏并执行搜索
   if (result.success && result.content && !pluginState.isRunning) {
     searchInput.value = result.content;
     // 如果有内容，自动执行搜索
-    const filtered = filterCommands(result.content);
+    const filtered = await filterCommands(result.content);
     renderResults(filtered);
   }
 });

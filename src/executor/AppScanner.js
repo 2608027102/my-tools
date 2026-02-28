@@ -157,6 +157,17 @@ class AppScanner {
 
   addAppFromRegistry(appName, appPath, appVersion, source) {
     if (!appName) return;
+
+    if (appPath) {
+      try {
+        const stat = fs.statSync(appPath);
+        if (!stat.isFile()) {
+          return;
+        }
+      } catch (error) {
+        return;
+      }
+    }
     
     // Check for duplicates
     if (!this.apps.some(existing => existing.name === appName)) {

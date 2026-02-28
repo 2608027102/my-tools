@@ -36,5 +36,16 @@
         "deb"
       ]
     }
-  }
+  },
+  "dependencies": {
+    "pinyin": "^4.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2608027102/my-tools.git"
+  },
+  "bugs": {
+    "url": "https://github.com/2608027102/my-tools/issues"
+  },
+  "homepage": "https://github.com/2608027102/my-tools#readme"
 }
