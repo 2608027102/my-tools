@@ -1,6 +1,6 @@
 // 使用DOMContentLoaded确保所有DOM元素都已加载完成
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('DOMContentLoaded event fired');
+  window.electronAPI.log('DOMContentLoaded event fired');
   
   const searchInput = document.getElementById('searchInput');
   const results = document.getElementById('results');
@@ -177,7 +177,7 @@ async function fuzzySearch(items, query) {
                 score = 100; // 正则匹配给予最高分数
               }
             } catch (error) {
-              console.error('Invalid regex pattern in plugin:', error);
+              window.electronAPI.error('Invalid regex pattern in plugin:', error);
               // 正则错误时回退到默认匹配
               score = await calculateMatchScore(item, lowerQuery);
             }
@@ -204,7 +204,7 @@ async function fuzzySearch(items, query) {
           userRegex = new RegExp(regexPattern, 'i');
           isUserRegex = true;
         } catch (error) {
-          console.error('Invalid regex pattern:', error);
+          window.electronAPI.error('Invalid regex pattern:', error);
           isUserRegex = false;
         }
       }
@@ -326,10 +326,10 @@ async function calculateMatchScore(item, query) {
 }
 
 function executeCommand(item) {
-  console.log('========== Executing command ==========');
-  console.log('Item:', item);
-  console.log('Item type:', item.type);
-  console.log('Item pluginId:', item.pluginId);
+  window.electronAPI.log('========== Executing command ==========');
+  window.electronAPI.log('Item: %s', JSON.stringify(item));
+  window.electronAPI.log('Item type: %s', item.type);
+  window.electronAPI.log('Item pluginId: %s', item.pluginId);
   
   // 清除之前的插件状态和UI元素
   pluginState = {
@@ -344,39 +344,39 @@ function executeCommand(item) {
   closePluginListSelection();
   
   if (item.type === 'plugin' && item.pluginId) {
-    console.log('Executing plugin command:', item.name);
+    window.electronAPI.log('Executing plugin command: %s', item.name);
     // 总是调用showPluginListSelection来处理插件命令
     showPluginListSelection(item);
   } else if (item.type === 'application') {
-    console.log('Executing application:', item.name);
+    window.electronAPI.log('Executing application: %s', item.name);
     window.electronAPI.executeApp(item);
     window.electronAPI.hideWindow();
   } else {
-    console.log('Executing regular command:', item.name);
+    window.electronAPI.log('Executing regular command: %s', item.name);
     window.electronAPI.executeCommand(item);
     window.electronAPI.hideWindow();
   }
 }
 
 function showPluginListSelection(plugin) {
-  console.log('========== Showing plugin list selection ==========');
-  console.log('Plugin:', plugin);
-  console.log('Plugin name:', plugin.name);
-  console.log('Plugin ID:', plugin.id);
-  console.log('Plugin pluginId:', plugin.pluginId);
+  window.electronAPI.log('========== Showing plugin list selection ==========');
+  window.electronAPI.log('Plugin: %s', JSON.stringify(plugin));
+  window.electronAPI.log('Plugin name: %s', plugin.name);
+  window.electronAPI.log('Plugin ID: %s', plugin.id);
+  window.electronAPI.log('Plugin pluginId: %s', plugin.pluginId);
   
   // 清空results容器，隐藏其他备选插件
   results.innerHTML = '';
   
   // 临时保存当前插件信息，用于处理返回结果
   currentPluginInfo = plugin;
-  console.log('Saved currentPluginInfo:', currentPluginInfo);
+  window.electronAPI.log('Saved currentPluginInfo: %s', JSON.stringify(currentPluginInfo));
   
   // 获取用户输入的文本
   const userInput = searchInput.value;
-  console.log('User input:', userInput);
+  window.electronAPI.log('User input: %s', userInput);
   
-  console.log('Sending executePluginCommandWithList');
+  window.electronAPI.log('Sending executePluginCommandWithList');
   window.electronAPI.executePluginCommandWithList({
     pluginId: plugin.pluginId,
     commandId: plugin.id,
@@ -384,7 +384,7 @@ function showPluginListSelection(plugin) {
       text: userInput
     }
   });
-  console.log('executePluginCommandWithList sent');
+  window.electronAPI.log('executePluginCommandWithList sent');
 }
 
 function renderPluginListSelection(listItems) {
@@ -421,7 +421,7 @@ function renderPluginListSelection(listItems) {
 }
 
 function executePluginListItem(item) {
-  console.log('Executing plugin list item:', item);
+  window.electronAPI.log('Executing plugin list item: %s', JSON.stringify(item));
   
   window.electronAPI.executePluginCommandWithList({
     pluginId: currentPluginList.pluginId,
@@ -444,7 +444,7 @@ function closePluginListSelection() {
 }
 
 function showPluginLogs(logs) {
-  console.log('Showing plugin logs:', logs);
+  window.electronAPI.log('Showing plugin logs: %s', JSON.stringify(logs));
   
   // 清空results容器，隐藏其他备选插件
   results.innerHTML = '';
@@ -493,7 +493,7 @@ function showPluginLogs(logs) {
     type: 'logs',
     data: logs
   };
-  console.log('Plugin state updated:', pluginState);
+  window.electronAPI.log('Plugin state updated: %s', JSON.stringify(pluginState));
 }
 
 function closePluginLogs() {
@@ -504,37 +504,37 @@ function closePluginLogs() {
 }
 
 function copyLogsToClipboard(button) {
-  console.log('Copying logs to clipboard');
+  window.electronAPI.log('Copying logs to clipboard');
   try {
     const logsContent = button.closest('.plugin-logs').querySelector('.plugin-logs-content');
-    console.log('Found logs content:', logsContent);
+    window.electronAPI.log('Found logs content: element exists');
     
     const logsData = logsContent.dataset.logs;
-    console.log('Logs data:', logsData);
+    window.electronAPI.log('Logs data: %s', logsData);
     
     const logs = JSON.parse(logsData);
-    console.log('Parsed logs:', logs);
+    window.electronAPI.log('Parsed logs: %s', JSON.stringify(logs));
     
     const logsText = logs.join('\n');
-    console.log('Logs text to copy:', logsText);
+    window.electronAPI.log('Logs text to copy: %s', logsText);
     
     // 使用 Electron API 复制到剪贴板
     if (window.electronAPI && window.electronAPI.copyToClipboard) {
-      console.log('Using Electron copyToClipboard API');
+      window.electronAPI.log('Using Electron copyToClipboard API');
       
       // 保存按钮引用，用于回调
       const currentButton = button;
       
       // 监听复制完成事件
       window.electronAPI.onCopyToClipboardComplete((event, result) => {
-        console.log('Copy to clipboard complete:', result);
+        window.electronAPI.log('Copy to clipboard complete: %s', JSON.stringify(result));
         if (result.success) {
           currentButton.textContent = '已复制!';
           setTimeout(() => {
             currentButton.textContent = '复制日志';
           }, 1000);
         } else {
-          console.error('Failed to copy to clipboard:', result.error);
+          window.electronAPI.error('Failed to copy to clipboard:', result.error);
           currentButton.textContent = '复制失败';
           setTimeout(() => {
             currentButton.textContent = '复制日志';
@@ -545,14 +545,14 @@ function copyLogsToClipboard(button) {
       // 发送复制请求
       window.electronAPI.copyToClipboard(logsText);
     } else {
-      console.error('Electron copyToClipboard API not available');
+      window.electronAPI.error('Electron copyToClipboard API not available');
       button.textContent = '复制失败';
       setTimeout(() => {
         button.textContent = '复制日志';
       }, 1000);
     }
   } catch (error) {
-    console.error('Error in copyLogsToClipboard:', error);
+    window.electronAPI.error('Error in copyLogsToClipboard:', error);
     button.textContent = '复制失败';
     setTimeout(() => {
       button.textContent = '复制日志';
@@ -561,7 +561,7 @@ function copyLogsToClipboard(button) {
 }
 
 function showPluginResult(result) {
-  console.log('Showing plugin result:', result);
+  window.electronAPI.log('Showing plugin result: %s', JSON.stringify(result));
   
   // 清空results容器，隐藏其他备选插件
   results.innerHTML = '';
@@ -619,7 +619,7 @@ function showPluginResult(result) {
     type: 'result',
     data: result
   };
-  console.log('Plugin state updated:', pluginState);
+  window.electronAPI.log('Plugin state updated: %s', JSON.stringify(pluginState));
 }
 
 function closePluginResult() {
@@ -630,16 +630,16 @@ function closePluginResult() {
 }
 
 function copyResultToClipboard(button) {
-  console.log('Copying result to clipboard');
+  window.electronAPI.log('Copying result to clipboard');
   try {
     const resultContent = button.closest('.plugin-result').querySelector('.plugin-result-content');
-    console.log('Found result content:', resultContent);
+    window.electronAPI.log('Found result content: element exists');
     
     const resultData = resultContent.dataset.result;
-    console.log('Result data:', resultData);
+    window.electronAPI.log('Result data: %s', resultData);
     
     const result = JSON.parse(resultData);
-    console.log('Parsed result:', result);
+    window.electronAPI.log('Parsed result: %s', JSON.stringify(result));
     
     let resultText = '';
     if (typeof result === 'object' && result !== null) {
@@ -652,25 +652,25 @@ function copyResultToClipboard(button) {
       resultText = String(result);
     }
     
-    console.log('Result text to copy:', resultText);
+    window.electronAPI.log('Result text to copy: %s', resultText);
     
     // 使用 Electron API 复制到剪贴板
     if (window.electronAPI && window.electronAPI.copyToClipboard) {
-      console.log('Using Electron copyToClipboard API');
+      window.electronAPI.log('Using Electron copyToClipboard API');
       
       // 保存按钮引用，用于回调
       const currentButton = button;
       
       // 监听复制完成事件
       window.electronAPI.onCopyToClipboardComplete((event, result) => {
-        console.log('Copy to clipboard complete:', result);
+        window.electronAPI.log('Copy to clipboard complete: %s', JSON.stringify(result));
         if (result.success) {
           currentButton.textContent = '已复制!';
           setTimeout(() => {
             currentButton.textContent = '复制结果';
           }, 1000);
         } else {
-          console.error('Failed to copy to clipboard:', result.error);
+          window.electronAPI.error('Failed to copy to clipboard:', result.error);
           currentButton.textContent = '复制失败';
           setTimeout(() => {
             currentButton.textContent = '复制结果';
@@ -681,14 +681,14 @@ function copyResultToClipboard(button) {
       // 发送复制请求
       window.electronAPI.copyToClipboard(resultText);
     } else {
-      console.error('Electron copyToClipboard API not available');
+      window.electronAPI.error('Electron copyToClipboard API not available');
       button.textContent = '复制失败';
       setTimeout(() => {
         button.textContent = '复制结果';
       }, 1000);
     }
   } catch (error) {
-    console.error('Error in copyResultToClipboard:', error);
+    window.electronAPI.error('Error in copyResultToClipboard:', error);
     button.textContent = '复制失败';
     setTimeout(() => {
       button.textContent = '复制结果';
@@ -781,13 +781,13 @@ window.addEventListener('keydown', (e) => {
       // 按下ESC按键时，根据按下次数执行不同操作
       if (pluginState.isRunning) {
         // 第一次按ESC：退出插件
-        console.log('ESC pressed, count:', escPressCount);
+        window.electronAPI.log('ESC pressed, count: %d', escPressCount);
         pluginState = {
           isRunning: false,
           type: null,
           data: null
         };
-        console.log('Plugin state cleared:', pluginState);
+        window.electronAPI.log('Plugin state cleared: %s', JSON.stringify(pluginState));
         // 清除插件结果、日志和HTML显示
         closePluginResult();
         closePluginLogs();
@@ -795,7 +795,7 @@ window.addEventListener('keydown', (e) => {
         escPressCount = 1;
       } else if (escPressCount === 1 || searchInput.value.trim() !== '') {
         // 第二次按ESC或输入框有内容：清除输入框内容
-        console.log('ESC pressed again, clearing input');
+        window.electronAPI.log('ESC pressed again, clearing input');
         searchInput.value = '';
         // 重新渲染结果
         (async () => {
@@ -805,7 +805,7 @@ window.addEventListener('keydown', (e) => {
         escPressCount = 2;
       } else if (escPressCount === 2 || searchInput.value.trim() === '') {
         // 第三次按ESC或输入框为空：隐藏输入框
-        console.log('ESC pressed third time, hiding window');
+        window.electronAPI.log('ESC pressed third time, hiding window');
         window.electronAPI.hideWindow();
         escPressCount = 0;
       } else {
@@ -821,11 +821,11 @@ window.addEventListener('focus', () => {
   searchInput.focus();
   // 每次窗口获得焦点时，重置ESC按键计数
   escPressCount = 0;
-  console.log('ESC press count reset to 0');
+  window.electronAPI.log('ESC press count reset to 0');
   
   // 如果插件处于运行状态，恢复显示插件结果界面
   if (pluginState.isRunning) {
-    console.log('Restoring plugin state:', pluginState);
+    window.electronAPI.log('Restoring plugin state: %s', JSON.stringify(pluginState));
     if (pluginState.type === 'logs') {
       showPluginLogs(pluginState.data);
     } else if (pluginState.type === 'result') {
@@ -838,17 +838,17 @@ window.addEventListener('focus', () => {
 
 // 监听窗口显示事件，只有在窗口显示时才获取剪切板内容
 window.electronAPI.onWindowShown(() => {
-  console.log('Window shown, getting clipboard content');
+  window.electronAPI.log('Window shown, getting clipboard content');
   window.electronAPI.getClipboardContent();
 });
 
 // 确保electronAPI已经初始化
-console.log('Checking electronAPI:', window.electronAPI);
-console.log('Checking onPluginCommandExecutedWithList:', typeof window.electronAPI.onPluginCommandExecutedWithList);
+window.electronAPI.log('Checking electronAPI: object exists');
+window.electronAPI.log('Checking onPluginCommandExecutedWithList: %s', typeof window.electronAPI.onPluginCommandExecutedWithList);
 
 // 监听窗口分离请求
 window.electronAPI.onDetachWindowRequest(() => {
-  console.log('Detach window request received');
+  window.electronAPI.log('Detach window request received');
   if (pluginState.isRunning) {
     // 发送插件状态到主进程，请求创建分离窗口
     window.electronAPI.detachWindow(pluginState);
@@ -869,7 +869,7 @@ window.electronAPI.onDetachWindowRequest(() => {
 
 // 监听恢复插件状态
 window.electronAPI.onRestorePluginState((event, state) => {
-  console.log('Restore plugin state received:', state);
+  window.electronAPI.log('Restore plugin state received: %s', JSON.stringify(state));
   pluginState = state;
   if (pluginState.isRunning) {
     if (pluginState.type === 'logs') {
@@ -883,17 +883,17 @@ window.electronAPI.onRestorePluginState((event, state) => {
 });
 
 window.electronAPI.onCommandExecuted((event, result) => {
-  console.log('Command executed:', result);
+  window.electronAPI.log('Command executed: %s', JSON.stringify(result));
 });
 
 window.electronAPI.onPluginCommandExecuted((event, result) => {
-  console.log('========== Plugin command executed ==========');
-  console.log('Result:', result);
-  console.log('Result type:', typeof result);
+  window.electronAPI.log('========== Plugin command executed ==========');
+  window.electronAPI.log('Result: %s', JSON.stringify(result));
+  window.electronAPI.log('Result type: %s', typeof result);
   
   // 检查是否是prompt请求
   if (result.result && typeof result.result === 'object' && result.result.type === 'prompt') {
-    console.log('Showing plugin prompt');
+    window.electronAPI.log('Showing plugin prompt');
     renderPluginPrompt(result.result);
   } else if (result.logs && result.logs.length > 0) {
     // 显示插件日志
@@ -905,7 +905,7 @@ window.electronAPI.onPluginCommandExecuted((event, result) => {
 });
 
 function renderPluginPrompt(promptData) {
-  console.log('Rendering plugin prompt:', promptData);
+  window.electronAPI.log('Rendering plugin prompt: %s', JSON.stringify(promptData));
   
   // 清空results容器，隐藏其他备选插件
   results.innerHTML = '';
@@ -979,7 +979,7 @@ function renderPluginPrompt(promptData) {
 }
 
 function submitPluginPrompt(value) {
-  console.log('Submitting plugin prompt:', value);
+  window.electronAPI.log('Submitting plugin prompt: %s', value);
   
   if (currentPluginInfo) {
     window.electronAPI.executePluginCommandWithList({
@@ -1004,7 +1004,7 @@ function closePluginPrompt() {
 }
 
 function renderPluginHtml(htmlData) {
-  console.log('Rendering plugin HTML:', htmlData);
+  window.electronAPI.log('Rendering plugin HTML: %s', JSON.stringify(htmlData));
   
   // 清空整个results容器，隐藏其他备选插件
   results.innerHTML = '';
@@ -1065,7 +1065,7 @@ function renderPluginHtml(htmlData) {
     type: 'html',
     data: htmlData
   };
-  console.log('Plugin state updated:', pluginState);
+  window.electronAPI.log('Plugin state updated: %s', JSON.stringify(pluginState));
 }
 
 function closePluginHtml() {
@@ -1077,39 +1077,39 @@ function closePluginHtml() {
 
 // 重新绑定插件命令执行结果监听器
 if (window.electronAPI && window.electronAPI.onPluginCommandExecutedWithList) {
-  console.log('Binding onPluginCommandExecutedWithList listener');
+  window.electronAPI.log('Binding onPluginCommandExecutedWithList listener');
   window.electronAPI.onPluginCommandExecutedWithList((event, result) => {
-    console.log('========== Plugin command executed with list ==========');
-    console.log('Event:', event);
-    console.log('Result:', result);
-    console.log('Result type:', typeof result);
+    window.electronAPI.log('========== Plugin command executed with list ==========');
+    window.electronAPI.log('Event: event object');
+    window.electronAPI.log('Result: %s', JSON.stringify(result));
+    window.electronAPI.log('Result type: %s', typeof result);
     
     if (result) {
-      console.log('Result success:', result.success);
-      console.log('Result isList:', result.isList);
-      console.log('Result isPrompt:', result.isPrompt);
-      console.log('Result result:', result.result);
-      console.log('Result logs:', result.logs);
+      window.electronAPI.log('Result success: %s', result.success);
+      window.electronAPI.log('Result isList: %s', result.isList);
+      window.electronAPI.log('Result isPrompt: %s', result.isPrompt);
+      window.electronAPI.log('Result result: %s', JSON.stringify(result.result));
+      window.electronAPI.log('Result logs: %s', JSON.stringify(result.logs));
       
       if (result.success && result.isPrompt) {
-        console.log('Showing plugin prompt');
+        window.electronAPI.log('Showing plugin prompt');
         renderPluginPrompt(result.result);
       } else if (result.success && result.isHtml) {
-        console.log('Showing plugin HTML');
+        window.electronAPI.log('Showing plugin HTML');
         renderPluginHtml(result.result);
       } else if (result.success && result.isList && Array.isArray(result.result)) {
-        console.log('Showing list selection');
+        window.electronAPI.log('Showing list selection');
         currentPluginList = result.result;
         // 保存插件信息到列表中
         if (currentPluginInfo) {
-          console.log('Saving plugin info to list');
+          window.electronAPI.log('Saving plugin info to list');
           currentPluginList.pluginId = currentPluginInfo.pluginId;
           currentPluginList.commandId = currentPluginInfo.id;
         }
-        console.log('Rendering plugin list selection');
+        window.electronAPI.log('Rendering plugin list selection');
         renderPluginListSelection(currentPluginList);
       } else if (result.success) {
-        console.log('Single result, showing result');
+        window.electronAPI.log('Single result, showing result');
         // 显示插件日志
         if (result.logs && result.logs.length > 0) {
           showPluginLogs(result.logs);
@@ -1119,7 +1119,7 @@ if (window.electronAPI && window.electronAPI.onPluginCommandExecutedWithList) {
           showPluginResult(result.result);
         }
       } else {
-        console.log('Command failed:', result.error);
+        window.electronAPI.log('Command failed: %s', result.error);
         // 显示插件日志
         if (result.logs && result.logs.length > 0) {
           showPluginLogs(result.logs);
@@ -1129,12 +1129,12 @@ if (window.electronAPI && window.electronAPI.onPluginCommandExecutedWithList) {
         }
       }
     } else {
-      console.log('Result is null or undefined');
+      window.electronAPI.log('Result is null or undefined');
     }
   });
-  console.log('onPluginCommandExecutedWithList listener bound');
+  window.electronAPI.log('onPluginCommandExecutedWithList listener bound');
 } else {
-  console.error('window.electronAPI or onPluginCommandExecutedWithList is not available');
+  window.electronAPI.error('window.electronAPI or onPluginCommandExecutedWithList is not available');
 }
 
 function loadPluginCommands() {
@@ -1143,7 +1143,7 @@ function loadPluginCommands() {
 
 window.electronAPI.onPluginCommandsLoaded(async (event, loadedCommands) => {
   pluginCommands = loadedCommands;
-  console.log('Plugin commands loaded:', pluginCommands.length);
+  window.electronAPI.log('Plugin commands loaded: %s', pluginCommands.length);
   if (searchInput.value) {
     const filtered = await filterCommands(searchInput.value);
     renderResults(filtered);
@@ -1156,7 +1156,7 @@ function loadApps() {
 
 window.electronAPI.onAppsLoaded(async (event, loadedApps) => {
   apps = loadedApps;
-  console.log('Applications loaded:', apps.length);
+  window.electronAPI.log('Applications loaded: %s', apps.length);
   if (searchInput.value) {
     const filtered = await filterCommands(searchInput.value);
     renderResults(filtered);
@@ -1169,7 +1169,7 @@ function loadCommands() {
 
 window.electronAPI.onCommandsLoaded(async (event, loadedCommands) => {
   commands = loadedCommands;
-  console.log('Commands loaded:', commands.length);
+  window.electronAPI.log('Commands loaded: %s', commands.length);
   if (searchInput.value) {
     const filtered = await filterCommands(searchInput.value);
     renderResults(filtered);
@@ -1181,13 +1181,13 @@ function loadTheme() {
 }
 
 window.electronAPI.onThemeLoaded((event, { theme, themeName }) => {
-  console.log('Theme loaded:', themeName);
+  window.electronAPI.log('Theme loaded: %s', themeName);
   applyTheme(theme);
 });
 
 // 获取剪切板内容并填充到输入栏
 window.electronAPI.onClipboardContentRetrieved(async (event, result) => {
-  console.log('Clipboard content retrieved:', result);
+  window.electronAPI.log('Clipboard content retrieved: %s', JSON.stringify(result));
   // 只有当插件不处于运行状态时，才将剪切板内容填充到输入栏并执行搜索
   if (result.success && result.content && !pluginState.isRunning) {
     searchInput.value = result.content;

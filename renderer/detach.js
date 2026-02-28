@@ -1,6 +1,6 @@
 // 使用DOMContentLoaded确保所有DOM元素都已加载完成
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Detach window DOM content loaded');
+  window.electronAPI.log('Detach window DOM content loaded');
   
   const pluginContent = document.getElementById('pluginContent');
   let pluginState = null;
@@ -10,14 +10,14 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // 监听初始化事件
   window.electronAPI.onInitializeDetachWindow((event, data) => {
-    console.log('Initializing detach window with data:', data);
+    window.electronAPI.log('Initializing detach window with data: %s', JSON.stringify(data));
     pluginState = data.pluginState;
     renderPluginContent(pluginState);
   });
   
   // 监听插件命令执行结果
   window.electronAPI.onPluginCommandExecutedInDetach((event, result) => {
-    console.log('Plugin command executed in detach window:', result);
+    window.electronAPI.log('Plugin command executed in detach window: %s', JSON.stringify(result));
     handlePluginCommandResult(result);
   });
   
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function renderPluginContent(state) {
-    console.log('Rendering plugin content with state:', state);
+    window.electronAPI.log('Rendering plugin content with state: %s', JSON.stringify(state));
     if (!state || !state.isRunning) {
       pluginContent.innerHTML = '<div style="text-align: center; margin-top: 50px;">无插件内容</div>';
       return;
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function renderPluginLogs(logs) {
-    console.log('Rendering plugin logs:', logs);
+    window.electronAPI.log('Rendering plugin logs: %s', JSON.stringify(logs));
     
     const logsContainer = document.createElement('div');
     logsContainer.className = 'plugin-logs';
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function renderPluginResult(result) {
-    console.log('Rendering plugin result:', result);
+    window.electronAPI.log('Rendering plugin result: %s', JSON.stringify(result));
     
     const resultContainer = document.createElement('div');
     resultContainer.className = 'plugin-result';
@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function renderPluginHtml(htmlData) {
-    console.log('Rendering plugin HTML:', htmlData);
+    window.electronAPI.log('Rendering plugin HTML: %s', JSON.stringify(htmlData));
     
     // 使用iframe来隔离HTML内容
     const iframe = document.createElement('iframe');
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function handlePluginCommandResult(result) {
-    console.log('Handling plugin command result:', result);
+    window.electronAPI.log('Handling plugin command result: %s', JSON.stringify(result));
     
     // 清空当前内容
     pluginContent.innerHTML = '';
@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function renderPluginList(listItems) {
-    console.log('Rendering plugin list:', listItems);
+    window.electronAPI.log('Rendering plugin list: %s', JSON.stringify(listItems));
     
     const listSelection = document.createElement('div');
     listSelection.className = 'list-selection';
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function renderPluginPrompt(promptData) {
-    console.log('Rendering plugin prompt:', promptData);
+    window.electronAPI.log('Rendering plugin prompt: %s', JSON.stringify(promptData));
     
     const promptContainer = document.createElement('div');
     promptContainer.className = 'plugin-prompt';

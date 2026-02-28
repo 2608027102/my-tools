@@ -68,5 +68,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     });
   },
   // 窗口显示事件
-  onWindowShown: (callback) => ipcRenderer.on('window-shown', callback)
+  onWindowShown: (callback) => ipcRenderer.on('window-shown', callback),
+  // 日志功能
+  log: (message, ...args) => ipcRenderer.send('log-message', { level: 'log', message, args }),
+  error: (message, ...args) => ipcRenderer.send('log-message', { level: 'error', message, args }),
+  warn: (message, ...args) => ipcRenderer.send('log-message', { level: 'warn', message, args }),
+  info: (message, ...args) => ipcRenderer.send('log-message', { level: 'info', message, args })
 });

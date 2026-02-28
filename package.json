@@ -38,7 +38,8 @@
     }
   },
   "dependencies": {
-    "pinyin": "^4.0.0"
+    "pinyin": "^4.0.0",
+    "winston": "^3.19.0"
   },
   "repository": {
     "type": "git",

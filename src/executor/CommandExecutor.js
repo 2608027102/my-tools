@@ -1,5 +1,6 @@
 const { exec, spawn } = require('child_process');
 const { shell } = require('electron');
+const logger = require('../utils/logger');
 
 class CommandExecutor {
   constructor() {
@@ -7,7 +8,7 @@ class CommandExecutor {
   }
 
   execute(command, callback) {
-    console.log('Executing command:', command);
+    logger.log('Executing command: %s', command);
 
     if (command.type === 'system') {
       this.executeSystemCommand(command, callback);

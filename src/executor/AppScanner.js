@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const logger = require('../utils/logger');
 
 class AppScanner {
   constructor() {
@@ -22,10 +23,10 @@ class AppScanner {
         this.scanLinuxApps();
         break;
       default:
-        console.log('Unsupported platform:', this.platform);
+        logger.log('Unsupported platform: %s', this.platform);
     }
 
-    console.log(`Scanned ${this.apps.length} applications`);
+    logger.log(`Scanned ${this.apps.length} applications`);
     return this.apps;
   }
 
@@ -81,14 +82,14 @@ class AppScanner {
       const output = execSync('reg query "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall" /s', { encoding: 'utf8' });
       this.parseRegistryOutput(output, 'HKLM');
     } catch (error) {
-      console.error('Error scanning Windows registry (HKLM):', error);
+      logger.error('Error scanning Windows registry (HKLM):', error);
     }
 
     try {
       const userOutput = execSync('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall" /s', { encoding: 'utf8' });
       this.parseRegistryOutput(userOutput, 'HKCU');
     } catch (error) {
-      console.error('Error scanning Windows registry (HKCU):', error);
+      logger.error('Error scanning Windows registry (HKCU):', error);
     }
   }
 
@@ -303,7 +304,7 @@ class AppScanner {
       });
     } catch (error) {
       if (error.code !== 'EACCES' && error.code !== 'EPERM' && error.code !== 'ENOENT') {
-        console.error('Error scanning directory:', error);
+        logger.error('Error scanning directory:', error);
       }
     }
   }
@@ -333,7 +334,7 @@ class AppScanner {
         });
       }
     } catch (error) {
-      console.error('Error parsing desktop file:', error);
+      logger.error('Error parsing desktop file:', error);
     }
   }
 
@@ -353,7 +354,7 @@ class AppScanner {
 
   executeApp(app) {
     if (!app.path) {
-      console.error('No path specified for app:', app.name);
+      logger.error('No path specified for app: %s', app.name);
       return false;
     }
 
@@ -367,7 +368,7 @@ class AppScanner {
       }
       return true;
     } catch (error) {
-      console.error('Error executing app:', error);
+      logger.error('Error executing app:', error);
       return false;
     }
   }

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const logger = require('../utils/logger');
 
 class ConfigManager {
   constructor() {
@@ -25,7 +26,7 @@ class ConfigManager {
       const data = fs.readFileSync(this.commandsPath, 'utf8');
       return JSON.parse(data);
     } catch (error) {
-      console.error('Error loading commands:', error);
+      logger.error('Error loading commands:', error);
       return [];
     }
   }
@@ -35,7 +36,7 @@ class ConfigManager {
       fs.writeFileSync(this.commandsPath, JSON.stringify(commands, null, 2));
       return true;
     } catch (error) {
-      console.error('Error saving commands:', error);
+      logger.error('Error saving commands:', error);
       return false;
     }
   }
@@ -84,7 +85,7 @@ class ConfigManager {
       }
       return null;
     } catch (error) {
-      console.error('Error loading config:', error);
+      logger.error('Error loading config:', error);
       return null;
     }
   }
@@ -101,7 +102,7 @@ class ConfigManager {
       fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
       return true;
     } catch (error) {
-      console.error('Error saving config:', error);
+      logger.error('Error saving config:', error);
       return false;
     }
   }

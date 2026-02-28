@@ -6,6 +6,7 @@ const ConfigManager = require('./src/config/ConfigManager');
 const CommandExecutor = require('./src/executor/CommandExecutor');
 const ThemeManager = require('./src/config/ThemeManager');
 const AppScanner = require('./src/executor/AppScanner');
+const logger = require('./src/utils/logger');
 
 let mainWindow;
 let pluginManager;
@@ -40,7 +41,7 @@ function createWindow() {
 }
 
 function createDetachWindow() {
-  console.log('Creating detach window with plugin state:', detachedPluginState);
+  logger.log('Creating detach window with plugin state: %s', detachedPluginState);
   
   // 关闭已存在的分离窗口
   if (detachWindow) {
@@ -96,7 +97,7 @@ app.whenReady().then(() => {
   
   // 先扫描应用程序，然后再创建窗口
   const apps = appScanner.scanApps();
-  console.log('App scanning completed, found', apps.length, 'applications');
+  logger.log('App scanning completed, found %s %s', apps.length, 'applications');
   
   createWindow();
 
@@ -125,7 +126,7 @@ app.whenReady().then(() => {
 
   ipcMain.on('execute-command', (event, command) => {
     commandExecutor.execute(command, (result) => {
-      console.log('Command execution result:', result);
+      logger.log('Command execution result: %s', result);
       event.reply('command-executed', result);
     });
   });
@@ -137,7 +138,7 @@ app.whenReady().then(() => {
 
   ipcMain.on('get-plugin-commands', (event) => {
     const commands = pluginManager.getPluginCommands();
-    console.log('Sending plugin commands to renderer:', commands.length);
+    logger.log('Sending plugin commands to renderer: %s', commands.length);
     event.reply('plugin-commands-loaded', commands);
   });
 
@@ -147,10 +148,10 @@ app.whenReady().then(() => {
   });
 
   ipcMain.on('execute-plugin-command-with-list', (event, { pluginId, commandId, params }) => {
-    console.log('Received execute-plugin-command-with-list:', { pluginId, commandId, params });
+    logger.log('Received execute-plugin-command-with-list: %s', { pluginId, commandId, params });
     const result = pluginManager.executePluginCommandWithList(pluginId, commandId, params);
-    console.log('Sending plugin-command-executed-with-list:', result);
-    event.reply('plugin-command-executed-with-list', result);
+    logger.log('Sending plugin-command-executed-with-list: %s', result);
+    event.reply('plugin-command-executed-with-list %s', result);
   });
 
   ipcMain.on('reload-plugins', (event) => {
@@ -201,13 +202,13 @@ app.whenReady().then(() => {
 
   ipcMain.on('get-apps', async (event) => {
     const apps = appScanner.getApps();
-    console.log('Sending apps to renderer:', apps.length);
+    logger.log('Sending apps to renderer: %s', apps.length);
     
     function getShortcutTarget(path) {
       try {
         return shell.readShortcutLink(path).target;
       } catch (error) {
-        console.error('Error reading shortcut link:', path, error);
+        logger.error('Error reading shortcut link: %s, %s', path, error);
         return path;
       }
     }
@@ -236,7 +237,7 @@ app.whenReady().then(() => {
         }
         return appItem;
       } catch (error) {
-        console.error('Error getting icon for app:', appItem.name, error);
+        logger.error('Error getting icon for app: %s', appItem.name, error);
         return appItem;
       }
     }));
@@ -246,7 +247,7 @@ app.whenReady().then(() => {
 
   ipcMain.on('search-apps', async (event, query) => {
     const apps = appScanner.searchApps(query);
-    console.log('Searching apps with query:', query, 'found', apps.length);
+    logger.log('Searching apps with query: %s  %s  %s', query, 'found', apps.length);
     
     // 为每个应用获取图标
     const appsWithIcons = await Promise.all(apps.map(async (appItem) => {
@@ -260,7 +261,7 @@ app.whenReady().then(() => {
         }
         return appItem;
       } catch (error) {
-        console.error('Error getting icon for app:', appItem.name, error);
+        logger.error('Error getting icon for app: %s', appItem.name, error);
         return appItem;
       }
     }));
@@ -275,15 +276,15 @@ app.whenReady().then(() => {
 
   // 处理复制到剪贴板的请求
   ipcMain.on('copy-to-clipboard', (event, text) => {
-    console.log('Copying to clipboard:', text);
+    logger.log('Copying to clipboard: %s', text);
     try {
       const { clipboard } = require('electron');
       clipboard.writeText(text);
-      console.log('Copied to clipboard successfully');
-      event.reply('copy-to-clipboard-complete', { success: true });
+      logger.log('Copied to clipboard successfully');
+      event.reply('copy-to-clipboard-complete %s', { success: true });
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-      event.reply('copy-to-clipboard-complete', { success: false, error: error.message });
+      logger.error('Failed to copy to clipboard:', error);
+      event.reply('copy-to-clipboard-complete %s', { success: false, error: error.message });
     }
   });
 
@@ -292,17 +293,17 @@ app.whenReady().then(() => {
     try {
       const { clipboard } = require('electron');
       const content = clipboard.readText();
-      console.log('Retrieved clipboard content:', content);
-      event.reply('clipboard-content-retrieved', { success: true, content });
+      logger.log('Retrieved clipboard content:', content);
+      event.reply('clipboard-content-retrieved %s', { success: true, content });
     } catch (error) {
-      console.error('Failed to get clipboard content:', error);
-      event.reply('clipboard-content-retrieved', { success: false, error: error.message });
+      logger.error('Failed to get clipboard content:', error);
+      event.reply('clipboard-content-retrieved %s', { success: false, error: error.message });
     }
   });
 
   // 处理窗口分离请求
   ipcMain.on('detach-window', (event, pluginState) => {
-    console.log('Received detach-window request with plugin state:', pluginState);
+    logger.log('Received detach-window request with plugin state: %s', pluginState);
     detachedPluginState = pluginState;
     
     // 创建分离窗口
@@ -319,14 +320,14 @@ app.whenReady().then(() => {
 
   // 处理关闭分离窗口请求
   ipcMain.on('close-detach-window', () => {
-    console.log('Received close-detach-window request');
+    logger.log('Received close-detach-window request');
     if (detachWindow) {
       detachWindow.close();
       detachWindow = null;
       
       // 通知主窗口恢复插件状态
       if (mainWindow && detachedPluginState) {
-        mainWindow.webContents.send('restore-plugin-state', detachedPluginState);
+        mainWindow.webContents.send('restore-plugin-state %s', detachedPluginState);
         detachedPluginState = null;
       }
     }
@@ -376,7 +377,7 @@ app.whenReady().then(() => {
       }).join('');
       event.reply('pinyin-result', result);
     } catch (error) {
-      console.error('Error converting to pinyin:', error);
+      logger.error('Error converting to pinyin:', error);
       event.reply('pinyin-result', text);
     }
   });
@@ -394,8 +395,15 @@ app.whenReady().then(() => {
       }).join('');
       event.reply('pinyin-first-letter-result', result);
     } catch (error) {
-      console.error('Error converting to pinyin first letter:', error);
+      logger.error('Error converting to pinyin first letter:', error);
       event.reply('pinyin-first-letter-result', text);
+    }
+  });
+
+  // 处理渲染进程的日志消息
+  ipcMain.on('log-message', (event, { level, message, args }) => {
+    if (logger[level]) {
+      logger[level](message, ...args);
     }
   });
 

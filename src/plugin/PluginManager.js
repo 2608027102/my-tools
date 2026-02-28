@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const logger = require('../utils/logger');
 
 class PluginManager {
   constructor() {
@@ -43,22 +44,22 @@ class PluginManager {
                   const pluginModule = require(plugin.main);
                   plugin.module = pluginModule;
                 } catch (error) {
-                  console.error(`Error loading plugin ${plugin.name}:`, error);
+                  logger.error(`Error loading plugin ${plugin.name}:`, error);
                 }
               }
               
               this.plugins.push(plugin);
             } catch (error) {
-              console.error(`Error parsing plugin config for ${dir}:`, error);
+              logger.error(`Error parsing plugin config for ${dir}:`, error);
             }
           }
         }
       });
 
-      console.log(`Loaded ${this.plugins.length} plugins`);
+      logger.log(`Loaded ${this.plugins.length} plugins`);
       return this.plugins;
     } catch (error) {
-      console.error('Error loading plugins:', error);
+      logger.error('Error loading plugins:', error);
       return [];
     }
   }
@@ -91,13 +92,13 @@ class PluginManager {
   executePluginCommand(pluginId, commandId, params) {
     const plugin = this.getPluginById(pluginId);
     if (!plugin) {
-      console.error(`Plugin ${pluginId} not found`);
+      logger.error(`Plugin ${pluginId} not found`);
       return null;
     }
 
     const command = plugin.commands.find(cmd => cmd.id === commandId);
     if (!command) {
-      console.error(`Command ${commandId} not found in plugin ${pluginId}`);
+      logger.error(`Command ${commandId} not found in plugin ${pluginId}`);
       return null;
     }
 
@@ -105,7 +106,7 @@ class PluginManager {
       try {
         return plugin.module.executeCommand(commandId, params);
       } catch (error) {
-        console.error(`Error executing command ${commandId} in plugin ${pluginId}:`, error);
+        logger.error(`Error executing command ${commandId} in plugin ${pluginId}:`, error);
         return null;
       }
     }
@@ -114,36 +115,36 @@ class PluginManager {
   }
 
   executePluginCommandWithList(pluginId, commandId, params) {
-    console.log('========== PluginManager.executePluginCommandWithList ==========');
-    console.log('pluginId:', pluginId);
-    console.log('commandId:', commandId);
-    console.log('params:', params);
+    logger.log('========== PluginManager.executePluginCommandWithList ==========');
+    logger.log('pluginId: %s', pluginId);
+    logger.log('commandId: %s', commandId);
+    logger.log('params: %s', params);
     
     const plugin = this.getPluginById(pluginId);
     if (!plugin) {
-      console.error(`Plugin ${pluginId} not found`);
+      logger.error(`Plugin ${pluginId} not found`);
       return {
         success: false,
         error: 'Plugin not found'
       };
     }
     
-    console.log('Found plugin:', plugin.name);
+    logger.log('Found plugin: %s', plugin.name);
 
     const command = plugin.commands.find(cmd => cmd.id === commandId);
     if (!command) {
-      console.error(`Command ${commandId} not found in plugin ${pluginId}`);
+      logger.error(`Command ${commandId} not found in plugin ${pluginId}`);
       return {
         success: false,
         error: 'Command not found'
       };
     }
     
-    console.log('Found command:', command.name);
+    logger.log('Found command: %s', command.name);
 
     if (plugin.module && plugin.module.executeCommand) {
       try {
-        console.log('Executing plugin command:', commandId);
+        logger.log('Executing plugin command: %s', commandId);
         
         // 捕获插件的console.log输出
         const originalConsoleLog = console.log;
@@ -156,7 +157,7 @@ class PluginManager {
         
         // 检查是否有prompt参数
         if (params && params.prompt) {
-          console.log('Processing prompt:', params.prompt);
+          console.log('Processing prompt: %s', params.prompt);
           // 这里可以添加对prompt的处理逻辑
         }
         
@@ -165,14 +166,14 @@ class PluginManager {
         // 恢复原始console.log
         console.log = originalConsoleLog;
         
-        console.log('Plugin returned result:', result);
-        console.log('Result type:', typeof result);
-        console.log('Is array:', Array.isArray(result));
-        console.log('Plugin logs:', pluginLogs);
+        logger.log('Plugin returned result: %s', result);
+        logger.log('Result type: %s', typeof result);
+        logger.log('Is array: %s', Array.isArray(result));
+        logger.log('Plugin logs: %s', pluginLogs);
         
         // Check if result contains a prompt request
         if (result && typeof result === 'object' && !Array.isArray(result) && result.type === 'prompt') {
-          console.log('Returning prompt request');
+          logger.log('Returning prompt request');
           return {
             success: true,
             result: result,
@@ -183,7 +184,7 @@ class PluginManager {
         
         // Check if result contains HTML content
         if (result && typeof result === 'object' && !Array.isArray(result) && result.type === 'html') {
-          console.log('Returning HTML content');
+          logger.log('Returning HTML content');
           return {
             success: true,
             result: result,
@@ -194,7 +195,7 @@ class PluginManager {
         
         // Check if result contains a list
         if (result && Array.isArray(result)) {
-          console.log('Returning list result');
+          logger.log('Returning list result');
           return {
             success: true,
             result: result,
@@ -205,7 +206,7 @@ class PluginManager {
         
         // Check if result contains a single item
         if (result && typeof result === 'object' && !Array.isArray(result)) {
-          console.log('Returning object result');
+          logger.log('Returning object result');
           // 检查是否是错误对象
           if (result.success === false) {
             return {
@@ -224,7 +225,7 @@ class PluginManager {
         
         // Default fallback
         if (result) {
-          console.log('Returning other result');
+          logger.log('Returning other result');
           return {
             success: true,
             result: result,
@@ -242,7 +243,7 @@ class PluginManager {
         // 恢复原始console.log
         console.log = originalConsoleLog;
         
-        console.error(`Error executing command ${commandId} in plugin ${pluginId}:`, error);
+        logger.error(`Error executing command ${commandId} in plugin ${pluginId}:`, error);
         return {
           success: false,
           error: error.message,
@@ -251,7 +252,7 @@ class PluginManager {
       }
     }
 
-    console.log('Plugin module not found');
+    logger.log('Plugin module not found');
     return {
       success: false,
       error: 'Plugin module not found'
