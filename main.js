@@ -151,7 +151,7 @@ app.whenReady().then(() => {
     logger.log('Received execute-plugin-command-with-list: %s', { pluginId, commandId, params });
     const result = pluginManager.executePluginCommandWithList(pluginId, commandId, params);
     logger.log('Sending plugin-command-executed-with-list: %s', result);
-    event.reply('plugin-command-executed-with-list %s', result);
+    event.reply('plugin-command-executed-with-list', result);
   });
 
   ipcMain.on('reload-plugins', (event) => {
@@ -281,10 +281,10 @@ app.whenReady().then(() => {
       const { clipboard } = require('electron');
       clipboard.writeText(text);
       logger.log('Copied to clipboard successfully');
-      event.reply('copy-to-clipboard-complete %s', { success: true });
+      event.reply('copy-to-clipboard-complete', { success: true });
     } catch (error) {
       logger.error('Failed to copy to clipboard:', error);
-      event.reply('copy-to-clipboard-complete %s', { success: false, error: error.message });
+      event.reply('copy-to-clipboard-complete', { success: false, error: error.message });
     }
   });
 
@@ -294,10 +294,10 @@ app.whenReady().then(() => {
       const { clipboard } = require('electron');
       const content = clipboard.readText();
       logger.log('Retrieved clipboard content:', content);
-      event.reply('clipboard-content-retrieved %s', { success: true, content });
+      event.reply('clipboard-content-retrieved', { success: true, content });
     } catch (error) {
       logger.error('Failed to get clipboard content:', error);
-      event.reply('clipboard-content-retrieved %s', { success: false, error: error.message });
+      event.reply('clipboard-content-retrieved', { success: false, error: error.message });
     }
   });
 

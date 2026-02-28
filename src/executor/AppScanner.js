@@ -163,6 +163,7 @@ class AppScanner {
       try {
         const stat = fs.statSync(appPath);
         if (!stat.isFile()) {
+          logger.debug(`Registry app path is not a file: ${appPath}`);
           return;
         }
       } catch (error) {
