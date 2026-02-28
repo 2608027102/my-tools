@@ -1,0 +1,18 @@
+{
+  "id": "path-opener",
+  "name": "路径打开器",
+  "version": "1.0.0",
+  "description": "检测输入的内容是否为路径，并提供打开选项",
+  "author": "Speed Launcher Team",
+  "main": "main.js",
+  "commands": [
+    {
+      "id": "open-path",
+      "name": "打开路径",
+      "description": "打开指定的文件或文件夹路径",
+      "keywords": ["path", "open", "路径", "打开"],
+      "matchType": "regex",
+      "matchPattern": "^([a-zA-Z]:).*$"
+    }
+  ]
+}
